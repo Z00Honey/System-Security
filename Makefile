@@ -2,8 +2,8 @@ CC = gcc
 CFLAGS = -Wall -Werror -fPIC
 LDFLAGS = -shared
 
-SRCDIR = src
-INCDIR = include
+SRCDIR = src/core
+INCDIR = src/core/include
 BINDIR = build
 TARGET = $(BINDIR)/libfile_explorer.so
 

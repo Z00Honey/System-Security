@@ -1,4 +1,4 @@
-#include "../include/file_explorer.h"
+#include "include/file_explorer.h"
 #include <stdio.h>
 #include <dirent.h>
 
