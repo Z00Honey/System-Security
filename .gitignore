@@ -4,6 +4,9 @@
 !*/
 !Makefile
 
+### MSVC ###
+.vs/*
+
 ### C ###
 # Prerequisites
 *.d
