@@ -6,6 +6,8 @@
 
 ### MSVC ###
 .vs/*
+.vscode/*
+CppProperties.json
 
 ### C ###
 # Prerequisites
