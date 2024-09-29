@@ -1,46 +1,62 @@
-import sys
-import os
-import ctypes
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTreeView, QListWidget, QVBoxLayout, QWidget, QToolBar, QAction, QLineEdit, QHBoxLayout, QListWidgetItem,
-    QTabWidget, QFileSystemModel, QMessageBox, QSplitter, QDockWidget, QHeaderView, QMenu, QActionGroup, QTabBar, QInputDialog
+    QMenu, 
+    QAction, 
+    QWidget, 
+    QLineEdit,
+    QTreeView, 
+    QTabWidget, 
+    QVBoxLayout, 
+    QMessageBox, 
+    QActionGroup,
+    QFileSystemModel, 
 )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QDir, Qt, QSortFilterProxyModel, QEvent
+from PyQt5.QtCore import QSortFilterProxyModel, QDir, Qt
+
+import os
+import sys
 
 class SortFilterProxyModel(QSortFilterProxyModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setSortCaseSensitivity(Qt.CaseInsensitive)
 
-class FileExplorerTab(QWidget):
+class Tab_FileExplorer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
 
     def init_ui(self):
+
         layout = QVBoxLayout(self)
 
         self.address_bar = QLineEdit(self)
         self.address_bar.setPlaceholderText("주소 입력")
         self.address_bar.returnPressed.connect(self.navigate_to_address)
+
         layout.addWidget(self.address_bar)
 
         self.file_view = QTreeView(self)
+
         self.model = QFileSystemModel()
         self.model.setRootPath(QDir.rootPath())
+
         self.proxy_model = SortFilterProxyModel(self)
         self.proxy_model.setSourceModel(self.model)
-        self.file_view.setModel(self.proxy_model)
+
         self.file_view.setSortingEnabled(True)
+        self.file_view.setModel(self.proxy_model)
+        self.file_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.file_view.setRootIndex(self.proxy_model.mapFromSource(self.model.index(QDir.rootPath())))
+
         self.file_view.doubleClicked.connect(self.open_file_or_folder)
+
         self.file_view.header().setSectionsClickable(True)
         self.file_view.header().sectionClicked.connect(self.header_clicked)
         self.file_view.header().setContextMenuPolicy(Qt.CustomContextMenu)
         self.file_view.header().customContextMenuRequested.connect(self.show_header_context_menu)
-        self.file_view.setContextMenuPolicy(Qt.CustomContextMenu)
+
         self.file_view.customContextMenuRequested.connect(self.show_context_menu)
+        
         layout.addWidget(self.file_view)
 
         self.file_view.setColumnWidth(0, 300)  # 이름 (Name)
@@ -130,6 +146,7 @@ class FileExplorerTab(QWidget):
             action.setCheckable(True)
             action.setChecked(column in self.visible_columns)
             action.setData(column)
+
             if column == 0:  # '이름' 컬럼은 항상 체크되어 있고 비활성화
                 action.setEnabled(False)
             else:
@@ -213,148 +230,3 @@ class FileExplorerTab(QWidget):
 
     def create_new_file(self, parent_path):
         self.file_operations_dll.create_new_file(parent_path.encode('utf-8'))
-
-class CustomTabBar(QTabBar):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMovable(True)
-        self.setTabsClosable(True)
-        self.setElideMode(Qt.ElideRight)
-
-class FileExplorer(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        self.setWindowTitle("[일만집중하조] 파일 탐색기")
-        self.setGeometry(100, 100, 1000, 700)
-
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-        toolbar = QToolBar("메인 도구 모음")
-        self.addToolBar(Qt.TopToolBarArea, toolbar)
-        toolbar.setMovable(False)
-
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setTabBar(CustomTabBar())
-        self.tab_widget.setTabsClosable(True)
-        self.tab_widget.tabCloseRequested.connect(self.close_tab)
-        self.setCentralWidget(self.tab_widget)
-
-        actions = [
-            ('new.png', '새 탭', self.add_new_tab),
-            ('back.png', '뒤로', self.go_back),
-            ('front.png', '앞으로', self.go_forward),
-            ('leftup.png', '상위 폴더', self.go_up)
-        ]
-
-        for icon, text, func in actions:
-            action = QAction(QIcon(f'icon/tab/{icon}'), text, self)
-            action.triggered.connect(func)
-            toolbar.addAction(action)
-
-        self.search_bar = QLineEdit(self)
-        self.search_bar.setPlaceholderText("파일 검색")
-        self.search_bar.returnPressed.connect(self.search_files)
-        self.search_bar.setFixedWidth(150)
-        toolbar.addWidget(self.search_bar)
-
-        self.sidebar = QListWidget()
-
-        sidebar_items = [
-            ("terminal.png", "내 PC"),
-            ("downloads.png", "다운로드"),
-            ("apps.png", "바탕화면"),
-            ("folder.png", "문서"),
-            ("gallary.png", "사진"),
-            ("minimize.png", "테스트1")
-        ]
-        
-        for icon, text in sidebar_items:
-            self.sidebar.addItem(QListWidgetItem(QIcon(f'icon/sidebar/{icon}'), text))
-        self.sidebar.clicked.connect(self.sidebar_item_clicked)
-
-        self.sidebar_dock = QDockWidget("즐겨찾기", self)
-        self.sidebar_dock.setWidget(self.sidebar)
-        self.sidebar_dock.setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea)
-        self.sidebar_dock.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetClosable)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.sidebar_dock)
-
-        # sidebar_dock 크기 조절 및 숨김 기능 설정
-        self.sidebar_dock.installEventFilter(self)
-        self.sidebar_dock_hidden = False
-
-        self.statusBar().showMessage("Test for File Explorer GUI | 2024-09-28 20:00 | last tester : 이서준")
-        self.add_new_tab()
-
-    def eventFilter(self, obj, event):
-        if obj == self.sidebar_dock and event.type() == QEvent.Resize:
-            self.handle_sidebar_resize(event.size().width())
-        return super().eventFilter(obj, event)
-
-    def handle_sidebar_resize(self, width):
-        if width < 100 and not self.sidebar_dock_hidden:
-            self.sidebar_dock.hide()
-            self.sidebar_dock_hidden = True
-
-    def add_new_tab(self):
-        new_tab = FileExplorerTab(self)
-        index = self.tab_widget.addTab(new_tab, "새 탭")
-        self.tab_widget.setCurrentIndex(index)
-        new_tab.navigate_to(QDir.homePath())
-
-    def close_tab(self, index):
-        if self.tab_widget.count() > 1:
-            self.tab_widget.removeTab(index)
-        else:
-            self.close()
-
-    def sidebar_item_clicked(self, index):
-        item = self.sidebar.currentItem().text()
-        paths = {
-            "내 PC": QDir.rootPath(),
-            "다운로드": os.path.join(QDir.homePath(), "Downloads"),
-            "바탕화면": os.path.join(QDir.homePath(), "Desktop"),
-            "문서": os.path.join(QDir.homePath(), "Documents"),
-            "사진": os.path.join(QDir.homePath(), "Pictures"),
-            "테스트1": os.path.join(QDir.homePath(), "source")
-        }
-        path = paths.get(item, QDir.rootPath())
-        self.tab_widget.currentWidget().navigate_to(path)
-
-    def go_back(self):
-        current_tab = self.tab_widget.currentWidget()
-        if current_tab.current_index > 0:
-            current_tab.current_index -= 1
-            current_tab.navigate_to(current_tab.history[current_tab.current_index])
-
-    def go_forward(self):
-        current_tab = self.tab_widget.currentWidget()
-        if current_tab.current_index < len(current_tab.history) - 1:
-            current_tab.current_index += 1
-            current_tab.navigate_to(current_tab.history[current_tab.current_index])
-
-    def go_up(self):
-        current_tab = self.tab_widget.currentWidget()
-        current_path = current_tab.address_bar.text()
-        parent_path = os.path.dirname(current_path)
-        current_tab.navigate_to(parent_path)
-
-    def search_files(self):
-        current_tab = self.tab_widget.currentWidget()
-        search_term = self.search_bar.text()
-        current_path = current_tab.model.filePath(current_tab.file_view.rootIndex())
-        for root, dirs, files in os.walk(current_path):
-            for name in files:
-                if search_term.lower() in name.lower():
-                    full_path = os.path.join(root, name)
-                    self.statusBar().showMessage(f"경로 {full_path}", 5000)
-                    return
-        self.statusBar().showMessage("파일을 찾을 수 없습니다.", 3000)
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = FileExplorer()
-    window.show()
-    sys.exit(app.exec_())
