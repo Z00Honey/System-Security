@@ -250,7 +250,7 @@ class FileExplorer(QMainWindow):
         ]
 
         for icon, text, func in actions:
-            action = QAction(QIcon(f'icon/{icon}'), text, self)
+            action = QAction(QIcon(f'icon/tab/{icon}'), text, self)
             action.triggered.connect(func)
             toolbar.addAction(action)
 
@@ -272,7 +272,7 @@ class FileExplorer(QMainWindow):
         ]
         
         for icon, text in sidebar_items:
-            self.sidebar.addItem(QListWidgetItem(QIcon(f'icon/{icon}'), text))
+            self.sidebar.addItem(QListWidgetItem(QIcon(f'icon/sidebar/{icon}'), text))
         self.sidebar.clicked.connect(self.sidebar_item_clicked)
 
         self.sidebar_dock = QDockWidget("즐겨찾기", self)
