@@ -7,6 +7,9 @@ from PyQt5.QtGui import QIcon
 
 from .tabs.FileExplorer import Tab_FileExplorer
 from .icons import SIDEBAR_ITEMS
+#############################################↓↓↓
+from secure_folder_manager import SecureFolderManager  #보안 폴더 매니저 모듈 가져오기
+#############################################↑↑↑
 
 import os
 import sys
@@ -26,6 +29,9 @@ class FileExplorer(QMainWindow):
         self.image_basepath = "./icon"
 
         super().__init__()
+        ###########################################↓↓↓
+         self.secure_manager = SecureFolderManager()  # 보안 폴더 관리자 초기화
+        ###########################################↑↑↑
         self.SettingUserInterface()   #"사용자 인터페이스 설정 메소드"호출 (메인 UI 설정)↓↓
 
     #"사용자 인터페이스 설정 메소드"↑↑
@@ -171,5 +177,8 @@ class FileExplorer(QMainWindow):
 def main():
     app = QApplication(sys.argv)  
     window = FileExplorer()  #<메인 윈도우 클래스>  생성
+    ####################################↓↓↓
+    window.secure_manager.set_initial_password(window)  # 초기 비밀번호 설정 (최초 실행 시)
+    ####################################↑↑↑
     window.show()
     sys.exit(app.exec_())
