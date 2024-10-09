@@ -15,24 +15,28 @@ from PyQt5.QtCore import QSortFilterProxyModel, QDir, Qt
 import os
 import sys
 
+# <정렬 및 필터링을 위한 사용자 정의 모델 클래스>
 class SortFilterProxyModel(QSortFilterProxyModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setSortCaseSensitivity(Qt.CaseInsensitive)
 
+#<파일 탐색기 탭 생성 클래스>
 class Tab_FileExplorer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.init_ui()
+        self.init_ui()  #"사용자 인터페이스 초기화 메서드"호출 ↓↓
 
+     # "사용자 인터페이스 초기화 메서드"↑↑
     def init_ui(self):
 
         layout = QVBoxLayout(self)
 
+        #주소 입력바 설정
         self.address_bar = QLineEdit(self)
         self.address_bar.setPlaceholderText("주소 입력")
         self.address_bar.returnPressed.connect(self.navigate_to_address)
-
+        
         layout.addWidget(self.address_bar)
 
         self.file_view = QTreeView(self)
@@ -86,6 +90,7 @@ class Tab_FileExplorer(QWidget):
         self.properties_dll = ctypes.CDLL("../../build/properties.dll")
         '''
 
+    #"주어진 경로로 이동 메서드"
     def navigate_to(self, path):
         source_index = self.model.index(path)
         proxy_index = self.proxy_model.mapFromSource(source_index)
@@ -94,6 +99,7 @@ class Tab_FileExplorer(QWidget):
         self.add_to_history(path)
         self.update_tab_name(path)
 
+    # "주소 입력을 통한 이동 메서드"
     def navigate_to_address(self):
         path = self.address_bar.text()
         if os.path.exists(path):
@@ -101,6 +107,7 @@ class Tab_FileExplorer(QWidget):
         else:
             QMessageBox.warning(self, "주소를 찾을 수 없습니다.", "입력하신 주소를 다시 확인해주세요.")
 
+    #"파일 또는 폴더 열기 메서드"
     def open_file_or_folder(self, index):
         source_index = self.proxy_model.mapToSource(index)
         path = self.model.filePath(source_index)
@@ -109,6 +116,7 @@ class Tab_FileExplorer(QWidget):
         else:
             self.file_operations_dll.open_file(path.encode('utf-8'))
 
+    
     def add_to_history(self, path):
         if self.current_index == -1 or path != self.history[self.current_index]:
             self.current_index += 1
@@ -225,8 +233,9 @@ class Tab_FileExplorer(QWidget):
             elif action == properties_action:
                 self.properties_dll.show_properties(file_path.encode('utf-8'))
 
+    #"폴더생성 메서드"
     def create_new_folder(self, parent_path):
         self.file_operations_dll.create_new_folder(parent_path.encode('utf-8'))
-
+    #"파일생성 메서드"
     def create_new_file(self, parent_path):
         self.file_operations_dll.create_new_file(parent_path.encode('utf-8'))
