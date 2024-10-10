@@ -23,8 +23,9 @@ class SortFilterProxyModel(QSortFilterProxyModel):
 
 #<파일 탐색기 탭 생성 클래스>
 class Tab_FileExplorer(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, secure_manager=None):   #########인자로 보안폴더 매니저 객체 추가
         super().__init__(parent)
+        self.secure_manager = secure_manager  ######### 보안 폴더 객체 저장
         self.init_ui()  #"사용자 인터페이스 초기화 메서드"호출 ↓↓
 
      # "사용자 인터페이스 초기화 메서드"↑↑
@@ -183,56 +184,71 @@ class Tab_FileExplorer(QWidget):
             index = tab_widget.indexOf(self)
             tab_widget.setTabText(index, os.path.basename(path) or "루트")
 
-    def show_context_menu(self, pos):
-        index = self.file_view.indexAt(pos)
-        menu = QMenu(self)
+   def show_context_menu(self, pos):
+    index = self.file_view.indexAt(pos)
+    menu = QMenu(self)
 
-        new_folder_action = menu.addAction("새 폴더 만들기")
-        new_file_action = menu.addAction("새 파일 만들기")
+    new_folder_action = menu.addAction("새 폴더 만들기")
+    new_file_action = menu.addAction("새 파일 만들기")
+    menu.addSeparator()
+
+    if index.isValid():
+        source_index = self.proxy_model.mapToSource(index)
+        file_path = self.model.filePath(source_index)
+
+        delete_action = menu.addAction("삭제")
+        rename_action = menu.addAction("이름변경")
+        open_action = menu.addAction("열기")
         menu.addSeparator()
 
-        if index.isValid():
-            source_index = self.proxy_model.mapToSource(index)
-            file_path = self.model.filePath(source_index)
+        compress_action = menu.addAction("압축")
+        virus_scan_action = menu.addAction("바이러스 검사")
+        header_check_action = menu.addAction("헤더검사")
+        ### lock_action = menu.addAction("잠금")   # "잠금" 아래에 구현
+        ### hide_action = menu.addAction("숨기기")   # "숨기기" 없애기로 한것 같았다는 기억이
+        properties_action = menu.addAction("속성")
+        ##############################################↓↓↓
+        # 보안 설정/해제 추가 
+        if self.secure_manager.is_secured(file_path):    # 이미 보안된 경우 "보안 해제" 메뉴만 추가
+            unlock_action = menu.addAction("보안 해제")
+        else:                                            # 보안되지 않은 경우 "보안 설정" 메뉴만 추가
+            secure_action = menu.addAction("보안 설정") 
+        ##############################################↑↑↑
+    action = menu.exec_(self.file_view.viewport().mapToGlobal(pos))
 
-            delete_action = menu.addAction("삭제")
-            rename_action = menu.addAction("이름변경")
-            open_action = menu.addAction("열기")
-            menu.addSeparator()
+    if action == new_folder_action:
+        self.create_new_folder(self.model.filePath(self.file_view.rootIndex()))
+    elif action == new_file_action:
+        self.create_new_file(self.model.filePath(self.file_view.rootIndex()))
+    elif index.isValid():
+        if action == delete_action:
+            self.file_operations_dll.delete_file(file_path.encode('utf-8'))
+        elif action == rename_action:
+            self.file_operations_dll.rename_file(file_path.encode('utf-8'))
+        elif action == open_action:
+            self.file_operations_dll.open_file(file_path.encode('utf-8'))
+        elif action == compress_action:
+            self.compress_dll.compress_file(file_path.encode('utf-8'))
+        elif action == virus_scan_action:
+            self.virus_scan_dll.scan_file(file_path.encode('utf-8'))
+        elif action == header_check_action:
+            self.header_check_dll.check_header(file_path.encode('utf-8'))
             
-            compress_action = menu.addAction("압축")
-            virus_scan_action = menu.addAction("바이러스 검사")
-            header_check_action = menu.addAction("헤더검사")
-            lock_action = menu.addAction("잠금")
-            hide_action = menu.addAction("숨기기")
-            properties_action = menu.addAction("속성")
-
-        action = menu.exec_(self.file_view.viewport().mapToGlobal(pos))
-
-        if action == new_folder_action:
-            self.create_new_folder(self.model.filePath(self.file_view.rootIndex()))
-        elif action == new_file_action:
-            self.create_new_file(self.model.filePath(self.file_view.rootIndex()))
-        elif index.isValid():
-            if action == delete_action:
-                self.file_operations_dll.delete_file(file_path.encode('utf-8'))
-            elif action == rename_action:
-                self.file_operations_dll.rename_file(file_path.encode('utf-8'))
-            elif action == open_action:
-                self.file_operations_dll.open_file(file_path.encode('utf-8'))
-            elif action == compress_action:
-                self.compress_dll.compress_file(file_path.encode('utf-8'))
-            elif action == virus_scan_action:
-                self.virus_scan_dll.scan_file(file_path.encode('utf-8'))
-            elif action == header_check_action:
-                self.header_check_dll.check_header(file_path.encode('utf-8'))
-            elif action == lock_action:
-                self.lock_dll.lock_file(file_path.encode('utf-8'))
-            elif action == hide_action:
-                self.hide_dll.hide_file(file_path.encode('utf-8'))
-            elif action == properties_action:
-                self.properties_dll.show_properties(file_path.encode('utf-8'))
-
+        '''  잠금/숨김 기능삭제
+        elif action == lock_action:
+             self.lock_dll.lock_file(file_path.encode('utf-8'))
+        elif action == hide_action:
+             self.hide_dll.hide_file(file_path.encode('utf-8'))
+        '''
+        
+        elif action == properties_action:
+            self.properties_dll.show_properties(file_path.encode('utf-8'))
+        ########################################↓↓↓
+        elif action == secure_action:
+            self.secure_manager.secure_item(self, file_path)  # 보안 설정 호출
+        elif action == unlock_action:
+            self.secure_manager.unlock_item(self, file_path)  # 보안 해제 호출
+        #########################################↑↑↑
     #"폴더생성 메서드"
     def create_new_folder(self, parent_path):
         self.file_operations_dll.create_new_folder(parent_path.encode('utf-8'))
