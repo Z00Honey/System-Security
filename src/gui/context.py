@@ -114,7 +114,7 @@ class FileExplorer(QMainWindow):
 
     #"탭 추가 메소드"
     def add_new_tab(self):
-        new_tab = Tab_FileExplorer(self)
+        new_tab = Tab_FileExplorer(self,self.secure_manager)    ########생상한 보안폴더 매니저 객체 전달
         index = self.tab_widget.addTab(new_tab, "새 탭")
         self.tab_widget.setCurrentIndex(index)
         new_tab.navigate_to(QDir.homePath())
