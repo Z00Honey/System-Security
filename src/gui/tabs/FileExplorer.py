@@ -95,8 +95,8 @@ class Tab_FileExplorer(QWidget):
     def navigate_to(self, path):
     ##################################################################↓↓↓
     # 보안 폴더에서 벗어나는 경우 인증 상태를 해제
-    if self.secure_manager.is_authenticated and not path.startswith(self.secure_manager.secure_folder_path):
-        self.secure_manager.is_authenticated = False   #인증해제
+    if self.secure_manager.authenticated and not path.startswith(self.secure_manager.secure_folder_path):
+        self.secure_manager.authenticated = False   #인증해제
         QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어났습니다. 다시 접근하려면 인증이 필요합니다.")
     ##################################################################↑↑↑
     source_index = self.model.index(path)
