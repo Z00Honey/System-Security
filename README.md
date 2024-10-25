@@ -1,15 +1,14 @@
-# System-Security
-### Team-4
+# File Explorer User Interface
 
+### Current User Interface
 
-<img src="base.png" width=50%>
+<img src="images/base.png" width=50%>
 
 #### UI Branch Structer
+
 ```bash
 src
 ├── main.py                      # 프로그램의 진입점. GUI 애플리케이션을 초기화 -> 메인 창 실행
-├── test.py                      # PySide6 test(QuteWindow) (메인 빌드 X)
-├── testwindow.py                # Windows 시스템 이벤트와 상호작용을 테스트하는 파일 (메인 빌드 X)
 ├── window.py                    # 주요 GUI 창 구성
 │	assets
 │	├── css
