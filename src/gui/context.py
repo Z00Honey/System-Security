@@ -177,8 +177,5 @@ class FileExplorer(QMainWindow):
 def main():
     app = QApplication(sys.argv)  
     window = FileExplorer()  #<메인 윈도우 클래스>  생성
-    ####################################↓↓↓
-    window.secure_manager.set_initial_password(window)  # 초기 비밀번호 설정 (최초 실행 시)
-    ####################################↑↑↑
     window.show()
     sys.exit(app.exec_())
