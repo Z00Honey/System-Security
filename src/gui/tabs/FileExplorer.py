@@ -93,18 +93,18 @@ class Tab_FileExplorer(QWidget):
 
     #"주어진 경로로 이동 메서드"
     def navigate_to(self, path):
-    ##################################################################↓↓↓
-    # 보안 폴더에서 벗어나는 경우 인증 상태를 해제
-    if self.secure_manager.authenticated and not path.startswith(self.secure_manager.secure_folder_path):
-        self.secure_manager.authenticated = False   #인증해제
-        QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어났습니다. 다시 접근하려면 인증이 필요합니다.")
-    ##################################################################↑↑↑
-    source_index = self.model.index(path)
-    proxy_index = self.proxy_model.mapFromSource(source_index)
-    self.file_view.setRootIndex(proxy_index)
-    self.address_bar.setText(path)
-    self.add_to_history(path)
-    self.update_tab_name(path)
+         ##################################################################↓↓↓
+         # 보안 폴더에서 벗어나는 경우 인증 상태를 해제
+         if self.secure_manager.authenticated and not path.startswith(self.secure_manager.secure_folder_path):
+             self.secure_manager.authenticated = False   #인증해제
+             QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어났습니다. 다시 접근하려면 인증이 필요합니다.")
+         ##################################################################↑↑↑
+         source_index = self.model.index(path)
+        proxy_index = self.proxy_model.mapFromSource(source_index)
+        self.file_view.setRootIndex(proxy_index)
+        self.address_bar.setText(path)
+        self.add_to_history(path)
+        self.update_tab_name(path)
 
     # "주소 입력을 통한 이동 메서드"
     def navigate_to_address(self):
