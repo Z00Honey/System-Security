@@ -4,12 +4,11 @@ QPushButton{
     padding: 5px;
     margin: 0px;
     border: none;
+    background: transparent;
 }
 QPushButton:hover{
     background-color:#caeeff;
 }
-QHBoxLayout{
-    background-color: #000;
-    height: 100px;
-    width: 100px;
+#CLOSE_BUTTON:hover{
+    background-color:red;
 }

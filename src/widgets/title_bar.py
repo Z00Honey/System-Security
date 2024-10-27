@@ -5,6 +5,7 @@ from PyQt5.QtGui import QIcon, QPalette, QColor
 from enum import IntEnum, auto, Enum
 
 from utils.load import load_stylesheet, image_base_path
+from widgets.tabs import WidgetNewTab
 
 class MaximizeButtonState(IntEnum):
     HOVER = auto()
@@ -14,7 +15,7 @@ class MaximizeButtonIcon(str, Enum):
     RESTORE = "restore"
     MAXIMIZE = "maximize"
 
-class TitleBar(QWidget):
+class WidgetTitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -22,11 +23,39 @@ class TitleBar(QWidget):
         self.background_color = "#d9f3ff"
 
         self.setFixedHeight(50)
+        self.size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        self.title_bar()
-        self.window_controls()
+        self.init()
+
+    def init(self):
+
+        self.setContentsMargins(0, 0, 0, 0)
+
+        self.main_layout = QHBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        self.addition_layouts()
         
-    def title_bar(self):
+        self.setLayout(self.main_layout)
+        self.setStyleSheet(load_stylesheet("title_bar.css"))
+
+    def addition_layouts(self):
+        self.title_bar_layout()
+
+        newtabs_layout = QHBoxLayout()
+        self.newtab_widget = WidgetNewTab()
+
+        newtabs_layout.addWidget(self.newtab_widget)
+        self.main_layout.addLayout(newtabs_layout)
+
+        newtab_add_layout = self.newtab_add_button_layout()
+        self.main_layout.addLayout(newtab_add_layout)
+
+        controls_layout = self.window_control_layout()
+        self.main_layout.addLayout(controls_layout)
+
+    def title_bar_layout(self):
         palette = self.palette()
         palette.setColor(
             QPalette.Background, 
@@ -35,7 +64,20 @@ class TitleBar(QWidget):
         self.setPalette(palette)
         self.setAutoFillBackground(True)
 
-    def window_controls(self):
+    def newtab_add_button_layout(self):
+        layout = QHBoxLayout()
+        layout.setAlignment(Qt.AlignLeft)
+
+        button = QPushButton()
+        button.setObjectName("plus")
+        button.setSizePolicy(self.size_policy)
+        button.setIcon(QIcon(image_base_path("plus.png")))
+
+        layout.addWidget(button)
+
+        return layout
+
+    def window_control_layout(self):
 
         self.CONTROLS_ICONS = {
             "MINIZE_BUTTON":"minimization.png",
@@ -55,30 +97,36 @@ class TitleBar(QWidget):
             
             self.__setattr__(name, QPushButton())
 
-            button = getattr(self, name)
-
+            button : QPushButton = getattr(self, name)
             button.setIcon(QIcon(image_base_path(filename)))
-
-            size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed) # Set PyQt5 CSS Access Policy 
-            button.setSizePolicy(size_policy)
+            button.setSizePolicy(self.size_policy)
             button.setObjectName(name)
 
             controls_layout.addWidget(button)
 
         self.MINIZE_BUTTON.clicked.connect(self.parent.showMinimized)
-        self.MAXIMIZE_BUTTON.clicked.connect(self.maximize_button_event)
         self.CLOSE_BUTTON.clicked.connect(self.parent.close)
+        self.MAXIMIZE_BUTTON.clicked.connect(self.maximize_button_event)
 
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(controls_layout)
-        main_layout.addStretch()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-        self.setLayout(main_layout)
+        self.MAXIMIZE_BUTTON.setState = self.maxmize_button_mouse_event
 
-        self.setStyleSheet(load_stylesheet("title_bar.css"))
+        return controls_layout
 
-    def maximize_button_event(self):
+    def maxmize_button_mouse_event(self, state : MaximizeButtonState) -> None:
+        if state == MaximizeButtonState.HOVER:
+            self.MAXIMIZE_BUTTON.setStyleSheet("""
+                QPushButton{
+                    background: #caeeff;
+                }
+            """)
+        elif state == MaximizeButtonState.NORMAL:
+            self.MAXIMIZE_BUTTON.setStyleSheet("""
+                QPushButton{
+                    background: transparent;
+                }
+            """)
+
+    def maximize_button_event(self) -> None:
         status = self.parent.isMaximized()
 
         if status:
@@ -88,7 +136,7 @@ class TitleBar(QWidget):
             self.parent.showMaximized()
             self.set_maximize_button_icon(MaximizeButtonIcon.RESTORE)
 
-    def set_maximize_button_icon(self, status):
+    def set_maximize_button_icon(self, status : MaximizeButtonIcon) -> None:
         if status == MaximizeButtonIcon.MAXIMIZE:
             self.MAXIMIZE_BUTTON.setIcon(
                 QIcon( image_base_path(self.CONTROLS_ICONS['MAXIMIZE_BUTTON']) )
@@ -98,5 +146,5 @@ class TitleBar(QWidget):
                 QIcon( image_base_path(self.CONTROLS_ICONS['NORMAL_BUTTON']) )
             )
 
-    def minimze_button_event(self):
+    def minimze_button_event(self) -> None:
         self.parent.showMinimized()

@@ -2,7 +2,7 @@
 
 ### Current User Interface
 
-<img src="images/base.png" width=50%>
+<img src="docs/images/base.png" width=50%>
 
 #### UI Branch Structer
 

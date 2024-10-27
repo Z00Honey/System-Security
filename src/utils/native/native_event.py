@@ -5,11 +5,15 @@ import win32con
 import win32gui
 
 from PyQt5.QtCore import QByteArray, QPoint, Qt, QEvent
-from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
+from PyQt5.QtGui import QMouseEvent
 
 from utils.native.util import isMaximized, isFullScreen
 from utils.native.c_structure import LPNCCALCSIZE_PARAMS
+
+from widgets.title_bar import MaximizeButtonState
+from widgets.tabs import LabelEventState
+
 def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
     msg = ctypes.wintypes.MSG.from_address(message.__int__())
 
@@ -49,25 +53,39 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
             if rx:
                 return True, win32con.HTRIGHT
 
-        # Convert x and y to integers
-        if widget.childAt(QPoint(int(x), int(y))) is widget.title_bar.MAXIMIZE_BUTTON:
+        if widget.childAt(QPoint(x, y)) is widget.title_bar.MAXIMIZE_BUTTON:
+            widget.title_bar.MAXIMIZE_BUTTON.setState(MaximizeButtonState.HOVER)
             return True, win32con.HTMAXBUTTON
+        
+        if (point := widget.childAt(QPoint(x,y))) in widget.title_bar.newtab_widget.tabs:
 
-        if widget.childAt(QPoint(int(x), int(y))) not in widget.title_bar.findChildren(QPushButton):
+            tabs = widget.title_bar.newtab_widget.tabs
+
+            for tab in tabs:
+                if point is tab:
+                    widget.title_bar.newtab_widget.setState(LabelEventState.HOVER, tab)
+                else:
+                    widget.title_bar.newtab_widget.setState(LabelEventState.NORMAL, tab)
+            
+        if widget.childAt(x, y) not in widget.title_bar.findChildren(QPushButton):
             if borderHeight < y < widget.title_bar.height():
                 return True, win32con.HTCAPTION
+
+    elif msg.message in [0x2A2, win32con.WM_MOUSELEAVE]:
+        widget.title_bar.MAXIMIZE_BUTTON.setState(MaximizeButtonState.NORMAL)
+        widget.title_bar.newtab_widget.setState(LabelEventState.NORMAL, None)
 
     elif msg.message == win32con.WM_MOVE:
         win32gui.SetWindowPos(msg.hWnd, None, 0, 0, 0, 0, win32con.SWP_NOMOVE |
                               win32con.SWP_NOSIZE | win32con.SWP_FRAMECHANGED)
 
     elif msg.message in [win32con.WM_NCLBUTTONDOWN, win32con.WM_NCLBUTTONDBLCLK]:
-        if widget.childAt(QPoint(int(x), int(y))) is widget.title_bar.MAXIMIZE_BUTTON:
+        if widget.childAt(QPoint(x, y)) is widget.title_bar.MAXIMIZE_BUTTON:
             QApplication.sendEvent(widget.title_bar.MAXIMIZE_BUTTON, QMouseEvent(
                 QEvent.MouseButtonPress, QPoint(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))
             return True, 0
     elif msg.message in [win32con.WM_NCLBUTTONUP, win32con.WM_NCRBUTTONUP]:
-        if widget.childAt(QPoint(int(x), int(y))) is widget.title_bar.MAXIMIZE_BUTTON:
+        if widget.childAt(QPoint(x, y)) is widget.title_bar.MAXIMIZE_BUTTON:
             QApplication.sendEvent(widget.title_bar.MAXIMIZE_BUTTON, QMouseEvent(
                 QEvent.MouseButtonRelease, QPoint(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))
 
