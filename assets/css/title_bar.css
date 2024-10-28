@@ -1,0 +1,9 @@
+QPushButton#extension_check {
+    background: transparent;
+    border: none;
+    padding: 5px;
+}
+
+QPushButton#extension_check:hover {
+    background: #caeeff;
+}
