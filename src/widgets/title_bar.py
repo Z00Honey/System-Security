@@ -21,17 +21,16 @@ class WidgetTitleBar(QWidget):
         self.parent = parent
 
         self.background_color = "#d9f3ff"
-
-        self.setFixedHeight(50)
+        
+        self.setFixedHeight(80)
         self.size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         self.init()
 
     def init(self):
-
         self.setContentsMargins(0, 0, 0, 0)
-
-        self.main_layout = QHBoxLayout()
+        
+        self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
@@ -41,19 +40,31 @@ class WidgetTitleBar(QWidget):
         self.setStyleSheet(load_stylesheet("title_bar.css"))
 
     def addition_layouts(self):
-        self.title_bar_layout()
+        top_layout = QHBoxLayout()
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(0)
 
-        newtabs_layout = QHBoxLayout()
         self.newtab_widget = WidgetNewTab()
-
-        newtabs_layout.addWidget(self.newtab_widget)
-        self.main_layout.addLayout(newtabs_layout)
+        top_layout.addWidget(self.newtab_widget)
 
         newtab_add_layout = self.newtab_add_button_layout()
-        self.main_layout.addLayout(newtab_add_layout)
+        top_layout.addLayout(newtab_add_layout)
 
         controls_layout = self.window_control_layout()
-        self.main_layout.addLayout(controls_layout)
+        top_layout.addLayout(controls_layout)
+
+        self.main_layout.addLayout(top_layout)
+
+        bottom_layout = QHBoxLayout()
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(0)
+
+
+        extension_check_layout = self.extension_check_button_layout()
+        bottom_layout.addLayout(extension_check_layout)
+        bottom_layout.addStretch()
+
+        self.main_layout.addLayout(bottom_layout)
 
     def title_bar_layout(self):
         palette = self.palette()
@@ -148,3 +159,19 @@ class WidgetTitleBar(QWidget):
 
     def minimze_button_event(self) -> None:
         self.parent.showMinimized()
+
+    def extension_check_button_layout(self):
+        layout = QHBoxLayout()
+        layout.setContentsMargins(20, 0, 0, 0) 
+        layout.setAlignment(Qt.AlignLeft)
+
+        button = QPushButton()
+        button.setObjectName("extension_check")
+        button.setToolTip("확장자 검사")
+        button.setSizePolicy(self.size_policy)
+        button.setIcon(QIcon(image_base_path("extension_check.png")))
+        button.setFixedSize(30, 30)
+
+        layout.addWidget(button)
+        
+        return layout

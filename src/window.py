@@ -1,5 +1,5 @@
 from screeninfo import get_monitors
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTreeView, QFileSystemModel
 from PyQt5.QtGui import QShowEvent, QRegion, QPainterPath
 from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
 from widgets.title_bar import WidgetTitleBar
@@ -35,11 +35,31 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(load_stylesheet("main.css")) 
 
     def init_layout(self) -> None:
-
-        self.title_bar = WidgetTitleBar(self)
-        self.layout.addWidget(self.title_bar)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+
+        # 파일 시스템 모델 설정
+        self.model = QFileSystemModel()
+        self.model.setRootPath('')
+        self.current_path = self.model.rootPath()
+
+        # 먼저 tabs를 추가
+        self.title_bar = WidgetTitleBar(self)
+        self.layout.addWidget(self.title_bar)
+
+        # 그 다음 tree view 추가
+        self.tree = QTreeView()
+        self.tree.setModel(self.model)
+        self.tree.setRootIndex(self.model.index(self.current_path))
+        self.tree.setColumnWidth(0, 400) 
+        self.tree.setHeaderHidden(False)
+        self.tree.setSelectionBehavior(QTreeView.SelectRows)
+        self.tree.setEditTriggers(QTreeView.NoEditTriggers)
+        self.tree.setRootIsDecorated(False)
+        
+        self.tree.doubleClicked.connect(self.on_directory_clicked)
+
+        self.layout.addWidget(self.tree)
         self.layout.addStretch()
 
     def auto_position(self) -> tuple:
@@ -70,3 +90,11 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, e) -> None:
         super().resizeEvent(e)
         self.title_bar.resize(self.width(), self.title_bar.height())
+
+    def on_directory_clicked(self, index):
+        # 선택된 경로가 디렉토리인 경우에만 처리
+        if self.model.isDir(index):
+            # 현재 경로 업데이트
+            self.current_path = self.model.filePath(index)
+            # 트리뷰의 루트 인덱스를 새로운 디렉토리로 변경
+            self.tree.setRootIndex(self.model.index(self.current_path))
