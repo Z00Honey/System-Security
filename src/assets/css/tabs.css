@@ -1,0 +1,14 @@
+#tabs{
+    background-color: transparent;
+    font-size: 15px;
+    padding:0px;
+    margin: 0px;
+    border: 1px solid black;
+    /* border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px; */
+}
+#tabs_text{
+    color: blue
+}
