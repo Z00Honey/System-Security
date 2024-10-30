@@ -12,7 +12,7 @@ from utils.native.util import isMaximized, isFullScreen
 from utils.native.c_structure import LPNCCALCSIZE_PARAMS
 
 from widgets.title_bar import MaximizeButtonState
-from widgets.tabs import LabelEventState
+from widgets.tabs import TabWidgetState
 
 def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
     msg = ctypes.wintypes.MSG.from_address(message.__int__())
@@ -63,9 +63,14 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
 
             for tab in tabs:
                 if point is tab:
-                    widget.title_bar.newtab_widget.setState(LabelEventState.HOVER, tab)
+                    print("TabWidgetState.HOVER")
+                    widget.title_bar.newtab_widget.setState(TabWidgetState.HOVER, tab)
                 else:
-                    widget.title_bar.newtab_widget.setState(LabelEventState.NORMAL, tab)
+                    widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, tab)
+        
+        for tab in widget.title_bar.newtab_widget.tabs:
+            if widget.childAt(QPoint(x,y)) is tab.findChild(QPushButton):
+                widget.title_bar.newtab_widget.setState(TabWidgetState.HOVER, tab)
             
         if widget.childAt(x, y) not in widget.title_bar.findChildren(QPushButton):
             if borderHeight < y < widget.title_bar.height():
@@ -73,7 +78,14 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
 
     elif msg.message in [0x2A2, win32con.WM_MOUSELEAVE]:
         widget.title_bar.MAXIMIZE_BUTTON.setState(MaximizeButtonState.NORMAL)
-        widget.title_bar.newtab_widget.setState(LabelEventState.NORMAL, None)
+        # if not ((point := widget.childAt(QPoint(x,y))) in widget.title_bar.newtab_widget.tabs):
+        #     for tab in widget.title_bar.newtab_widget.tabs:
+        #         if not widget.childAt(QPoint(x,y)) is tab.findChild(QPushButton):
+        #             if point is tab:
+        #                 widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, None)
+        widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, None)
+        # Tlqkf
+                
 
     elif msg.message == win32con.WM_MOVE:
         win32gui.SetWindowPos(msg.hWnd, None, 0, 0, 0, 0, win32con.SWP_NOMOVE |

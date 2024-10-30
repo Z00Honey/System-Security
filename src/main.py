@@ -2,8 +2,6 @@ from PyQt5.QtWidgets import *
 from window import MainWindow
 import sys
 
-from utils.load import load_stylesheet
-
 sys.dont_write_bytecode = True
 
 if __name__ == '__main__':
