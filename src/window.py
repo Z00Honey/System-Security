@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 from PyQt5.QtGui import QShowEvent, QRegion, QPainterPath
 from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
 from widgets.title_bar import WidgetTitleBar
+from widgets.navigation import NavigationWidget
 
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
@@ -38,6 +39,11 @@ class MainWindow(QMainWindow):
 
         self.title_bar = WidgetTitleBar(self)
         self.layout.addWidget(self.title_bar)
+
+        self.navigation_widget = NavigationWidget()
+        self.layout.addWidget(self.navigation_widget)
+        self.navigation_widget.setFixedWidth(self.width() // 5)
+
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.addStretch()
@@ -70,3 +76,4 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, e) -> None:
         super().resizeEvent(e)
         self.title_bar.resize(self.width(), self.title_bar.height())
+        self.navigation_widget.setFixedWidth(self.width() // 5)
