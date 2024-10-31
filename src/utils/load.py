@@ -2,12 +2,12 @@ from PyQt5.QtCore import QFile, QTextStream
 import os, sys
 
 def image_base_path(filename):
-    return os.path.join(os.getcwd() + "\\src\\assets\\images\\", filename)
+    return os.path.join(os.getcwd() + "\\assets\\images\\", filename)
 
 def load_stylesheet(filename, event = False):
 
-    if event : default_path = "\\src\\assets\\css\\events\\"
-    else : default_path = "\\src\\assets\\css\\"
+    if event : default_path = "\\assets\\css\\events\\"
+    else : default_path = "\\assets\\css\\"
     
     stylesheet_base_path = os.path.join(os.getcwd() + default_path)
     
