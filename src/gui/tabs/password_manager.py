@@ -8,9 +8,10 @@ from email.mime.text import MIMEText
 
 class PasswordManager:
     def __init__(self):
+        self.setup = False
         self.password = None
         self.email = None
-        self.correct_verification_code = None
+        self.correct_verification_code = 111111
         self.timer = None
         self.remaining_time = 0
 
@@ -195,15 +196,8 @@ class PasswordManager:
         # 초기 설정 완료 처리
         self.password = self.password_input.text()
         self.email = self.email_input.text()
+        self.setup=True
         QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
         dialog.accept()
 
-# QApplication을 초기화하고 PasswordManager를 실행합니다.
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
 
-    # PasswordManager 인스턴스를 생성하고 초기 설정 창을 실행합니다.
-    pss = PasswordManager()
-    pss.set_initial_password()
-
-    sys.exit(app.exec_())

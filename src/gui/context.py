@@ -8,7 +8,7 @@ from PyQt5.QtGui import QIcon
 from .tabs.FileExplorer import Tab_FileExplorer
 from .icons import SIDEBAR_ITEMS
 #############################################↓↓↓
-from secure_folder_manager import SecureFolderManager  #보안 폴더 매니저 모듈 가져오기
+from gui.tabs.secure_folder_manager import SecureFolderManager  #보안 폴더 매니저 모듈 가져오기
 #############################################↑↑↑
 
 import os
@@ -30,7 +30,7 @@ class FileExplorer(QMainWindow):
 
         super().__init__()
         ###########################################↓↓↓
-         self.secure_manager = SecureFolderManager()  # 보안 폴더 관리자 초기화
+        self.secure_manager = SecureFolderManager()  # 보안 폴더 관리자 초기화
         ###########################################↑↑↑
         self.SettingUserInterface()   #"사용자 인터페이스 설정 메소드"호출 (메인 UI 설정)↓↓
 
