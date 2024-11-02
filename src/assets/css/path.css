@@ -1,0 +1,12 @@
+/* path.css */
+
+/* PathBar 스타일 */
+#path_label {
+    font-size: 18px;          /* 글씨 크기 */
+    font-weight: bold;        /* 글씨 두께 */
+    color: #000;              /* 글씨 색상 */
+    text-align: center;       /* 텍스트 가운데 정렬 */
+    margin: 0;                /* 여백 설정 */
+    padding: 5px;             /* 패딩 설정 */
+    background-color: transparent;
+}

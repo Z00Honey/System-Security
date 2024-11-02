@@ -1,9 +1,9 @@
 from screeninfo import get_monitors
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QFrame
 from PyQt5.QtGui import QShowEvent, QRegion, QPainterPath
 from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
 from widgets.title_bar import WidgetTitleBar
-from widgets.navigation import NavigationWidget
+from widgets.address_bar import AddressBar
 
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
@@ -40,9 +40,11 @@ class MainWindow(QMainWindow):
         self.title_bar = WidgetTitleBar(self)
         self.layout.addWidget(self.title_bar)
 
-        self.navigation_widget = NavigationWidget()
-        self.layout.addWidget(self.navigation_widget)
-        self.navigation_widget.setFixedWidth(self.width() // 5)
+        # Title Bar와 Address Bar 사이의 구분선
+        self.add_horizontal_separator()
+
+        self.address_bar = AddressBar(self)  
+        self.layout.addWidget(self.address_bar)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
@@ -58,6 +60,13 @@ class MainWindow(QMainWindow):
         y = (display.height - height) // 2
 
         return (x, y if y else 100, width, height)
+    
+    def add_horizontal_separator(self) -> None:
+        line_separator = QFrame(self)
+        line_separator.setFrameShape(QFrame.HLine)
+        line_separator.setFrameShadow(QFrame.Plain)
+        line_separator.setStyleSheet("color: black;")  
+        self.layout.addWidget(line_separator)
 
     def setNonResizable(self) -> None:
         setWindowNonResizable(self.winId())
@@ -76,4 +85,3 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, e) -> None:
         super().resizeEvent(e)
         self.title_bar.resize(self.width(), self.title_bar.height())
-        self.navigation_widget.setFixedWidth(self.width() // 5)

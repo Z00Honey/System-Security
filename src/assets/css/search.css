@@ -1,0 +1,15 @@
+#search_bar {
+    font-size: 16px; /* 텍스트 크기 설정 */
+    padding: 10px; /* 입력창 안쪽 여백 설정 */
+    background-color: #f0f0f0; /* 배경 색상 설정 */
+    border-radius: 5px; /* 둥근 모서리 */
+}
+
+#search_bar:focus {
+    background-color: #ffffff; /* 포커스 상태에서 배경 색상 변경 */
+    outline: none; /* 기본 테두리 제거 */
+}
+
+QLabel {
+    margin-left: 10px; /* 아이콘과 입력창 사이의 여백 설정 */
+}
