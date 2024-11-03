@@ -38,13 +38,13 @@ CppProperties.json
 *.lo
 
 # Shared objects (inc. Windows DLLs)
-*.dll
+#*.dll
 *.so
 *.so.*
 *.dylib
 
 # Executables
-*.exe
+#*.exe
 *.out
 *.app
 *.i*86
@@ -128,7 +128,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+build/main
 develop-eggs/
 dist/
 downloads/

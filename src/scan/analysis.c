@@ -1,3 +1,5 @@
+// x86_64-w64-mingw32-gcc -shared -o analysis.dll analysis.c "-Wl,--out-implib,libanalysis.a"
+
 // analysis.c
 #ifdef _WIN32
     #include <windows.h>
@@ -39,7 +41,32 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 
 // 내보낼 함수 선언
 DLL_EXPORT int analyze_file(const char* filename, char* result, int result_size) {
-    FILE *file = fopen(filename, "rb");
+    FILE *file = NULL;
+
+#ifdef _WIN32
+    // UTF-8 문자열을 Wide 문자열로 변환
+    int wide_size = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
+    if (wide_size == 0) {
+        snprintf(result, result_size, "파일 이름 변환 실패");
+        return 0;
+    }
+
+    wchar_t *wfilename = (wchar_t*)malloc(wide_size * sizeof(wchar_t));
+    if (!wfilename) {
+        snprintf(result, result_size, "메모리 할당 실패");
+        return 0;
+    }
+
+    MultiByteToWideChar(CP_UTF8, 0, filename, -1, wfilename, wide_size);
+
+    // Wide 문자열을 사용하여 파일 열기
+    file = _wfopen(wfilename, L"rb");
+    free(wfilename);
+#else
+    // 비-Windows 환경에서는 기존 방식 사용
+    file = fopen(filename, "rb");
+#endif
+
     if (!file) {
         snprintf(result, result_size, "파일 열기 실패");
         return 0;
@@ -72,8 +99,9 @@ DLL_EXPORT int analyze_file(const char* filename, char* result, int result_size)
     }
 
     long footer_end_pos = 0;
-    int verify_result = 0;  // 추가: verify_result 변수 선언
-    int embedded_count = 0; // 추가: embedded_count 변수 선언
+    int verify_result = 0;  // 시그니처 검증 결과
+    int embedded_count = 0; // 숨겨진 파일 개수
+    char embedded_list[100] = ""; // 숨겨진 파일 목록 저장 버퍼
 
     // 파일 시그니처 및 푸터 검사
     if ((verify_result = verify_file_signature(filename, data, file_size, &footer_end_pos))) {
@@ -88,12 +116,16 @@ DLL_EXPORT int analyze_file(const char* filename, char* result, int result_size)
         unsigned char *embedded_data = data + footer_end_pos;
 
         char embedded_extensions[10][10]; // 최대 10개의 숨겨진 파일
-        int embedded_count = 0;
         if (detect_embedded_files(embedded_data, embedded_size, embedded_extensions, &embedded_count)) {
             if (embedded_count > 0) {
                 printf("푸터 이후에 숨겨진 파일 시그니처가 감지되었습니다 (%d개):\n", embedded_count);
                 for (int i = 0; i < embedded_count; i++) {
                     printf(" - %s\n", embedded_extensions[i]);
+                    // 숨겨진 파일 목록에 추가
+                    if (i > 0) {
+                        strncat(embedded_list, ", ", sizeof(embedded_list) - strlen(embedded_list) - 1);
+                    }
+                    strncat(embedded_list, embedded_extensions[i], sizeof(embedded_list) - strlen(embedded_list) - 1);
                 }
             } else {
                 printf("푸터 이후에 숨겨진 파일 시그니처가 없습니다.\n");
@@ -105,11 +137,15 @@ DLL_EXPORT int analyze_file(const char* filename, char* result, int result_size)
         printf("푸터 이후에 숨겨진 데이터가 없습니다.\n");
     }
 
-    // 결과를 result 버퍼에 저장
-    snprintf(result, result_size, "분석 완료: %s\n시그니처 검사: %s\n숨겨진 파일: %d개",
+    // 추가: embedded_count 값을 다시 출력하여 확인
+    printf("최종 embedded_count: %d\n", embedded_count);
+
+    // 결과를 result 버퍼에 저장 (숨겨진 파일 목록 추가)
+    snprintf(result, result_size, "분석 완료: %s\n시그니처 검사: %s\n숨겨진 파일: %d개\n숨겨진 파일 목록: %s",
              filename, 
              (verify_result ? "일치" : "불일치"),
-             embedded_count);
+             embedded_count,
+             embedded_list);
 
     free(data);
     return 1;
