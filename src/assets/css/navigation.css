@@ -1,20 +1,20 @@
 #navigation_widget {
     background-color: #f0f0f0;
     border: 1px solid #d0d0d0;
+    border-radius: 5px;
     padding: 5px;
 }
 
+QLabel {
+    margin-left: 10px; 
+}
+
 QPushButton {
-    background-color: #ffffff;
+    background-color: transparent;
     border: none;
-    margin: 0 5px;
-    width: 30px;
-    height: 30px;
 }
 
 QPushButton:hover {
-    background-color: #e0e0e0;
-    border: 1px solid #ccc;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
 }
-
-
