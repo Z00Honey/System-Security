@@ -4,6 +4,8 @@ from PyQt5.QtGui import QShowEvent, QRegion, QPainterPath
 from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
 from widgets.title_bar import WidgetTitleBar
 from widgets.address_bar import AddressBar
+from widgets.tool_bar import ToolBar
+
 
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
@@ -40,11 +42,15 @@ class MainWindow(QMainWindow):
         self.title_bar = WidgetTitleBar(self)
         self.layout.addWidget(self.title_bar)
 
-        # Title Bar와 Address Bar 사이의 구분선
         self.add_horizontal_separator()
 
         self.address_bar = AddressBar(self)  
         self.layout.addWidget(self.address_bar)
+
+        self.add_horizontal_separator()
+
+        self.tool_bar = ToolBar(self)
+        self.layout.addWidget(self.tool_bar)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
