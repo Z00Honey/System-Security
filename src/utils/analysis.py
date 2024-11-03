@@ -73,20 +73,45 @@ def parse_result(result):
     signature_check = lines[1].replace("시그니처 검사: ", "") if len(lines) > 1 else ""
     hidden_count = lines[2].replace("숨겨진 파일: ", "").replace("개", "") if len(lines) > 2 else ""
     hidden_list = lines[3].replace("숨겨진 파일 목록: ", "") if len(lines) > 3 else ""
-    print("Parsed Results:", analysis_completed, signature_check, hidden_count, hidden_list)  # 디버깅용
-    return analysis_completed, signature_check, hidden_count, hidden_list
+    double_extension = lines[4].replace("이중 확장자: ", "") if len(lines) > 4 else ""
+    double_extension_list = lines[5].replace("이중 확장자 목록: ", "") if len(lines) > 5 else ""
+    print("Parsed Results:", analysis_completed, signature_check, hidden_count, hidden_list, double_extension, double_extension_list)  # 디버깅용
+    return analysis_completed, signature_check, hidden_count, hidden_list, double_extension, double_extension_list
 
-def show_popup(analysis_completed, signature_check, hidden_count, hidden_list):
+def show_popup(analysis_completed, signature_check, hidden_count, hidden_list, double_extension, double_extension_list):
+    # QApplication에서 기본 폰트 설정
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+    
+    font = app.font()
+    font.setFamily("맑은 고딕")  # 한글을 지원하는 폰트로 설정
+    font.setPointSize(10)  # 필요 시 폰트 크기 조정
+    app.setFont(font)
+    
     # QMessageBox 설정
     msg_box = QMessageBox()
     msg_box.setWindowTitle("파일 분석 결과")
     msg_box.setIcon(QMessageBox.Information)
     
     # 메시지 내용 구성
-    message = f"분석 완료: {analysis_completed}\n" \
-              f"시그니처 검사: {signature_check}\n" \
-              f"숨겨진 파일: {hidden_count}개\n" \
-              f"숨겨진 파일 목록: {hidden_list}"
+    if double_extension.lower() == "있음":
+        message = (
+            f"분석 완료: {analysis_completed}\n"
+            f"시그니처 검사: {signature_check}\n"
+            f"숨겨진 파일: {hidden_count}개\n"
+            f"숨겨진 파일 목록: {hidden_list}\n"
+            f"이중 확장자: {double_extension}\n"
+            f"이중 확장자 목록: {double_extension_list}"
+        )
+    else:
+        message = (
+            f"분석 완료: {analysis_completed}\n"
+            f"시그니처 검사: {signature_check}\n"
+            f"숨겨진 파일: {hidden_count}개\n"
+            f"숨겨진 파일 목록: {hidden_list}\n"
+            f"이중 확장자: {double_extension}"
+        )
     
     msg_box.setText(message)
     msg_box.exec_()
@@ -146,8 +171,8 @@ class FileAnalyzerApp(QWidget):
         self.progress_bar.setVisible(False)
         self.button.setEnabled(True)
         self.status_label.setText("분석 완료")
-        analysis_completed, signature_check, hidden_count, hidden_list = parse_result(result)
-        show_popup(analysis_completed, signature_check, hidden_count, hidden_list)
+        analysis_completed, signature_check, hidden_count, hidden_list, double_extension, double_extension_list = parse_result(result)
+        show_popup(analysis_completed, signature_check, hidden_count, hidden_list, double_extension, double_extension_list)
 
     def on_analysis_error(self, error_message):
         self.progress_bar.setVisible(False)

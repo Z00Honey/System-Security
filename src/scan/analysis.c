@@ -1,6 +1,6 @@
-// x86_64-w64-mingw32-gcc -shared -o analysis.dll analysis.c "-Wl,--out-implib,libanalysis.a"
-
 // analysis.c
+// x86_64-w64-mingw32-gcc -shared -o ../build/analysis.dll analysis.c "-Wl,--out-implib,libanalysis.a"
+
 #ifdef _WIN32
     #include <windows.h>
     #define DLL_EXPORT __declspec(dllexport)
@@ -137,15 +137,52 @@ DLL_EXPORT int analyze_file(const char* filename, char* result, int result_size)
         printf("푸터 이후에 숨겨진 데이터가 없습니다.\n");
     }
 
-    // 추가: embedded_count 값을 다시 출력하여 확인
-    printf("최종 embedded_count: %d\n", embedded_count);
+    // 이중 확장자 검사
+    int double_extension = 0;
+    char double_extension_list[100] = "";
 
-    // 결과를 result 버퍼에 저장 (숨겨진 파일 목록 추가)
-    snprintf(result, result_size, "분석 완료: %s\n시그니처 검사: %s\n숨겨진 파일: %d개\n숨겨진 파일 목록: %s",
-             filename, 
-             (verify_result ? "일치" : "불일치"),
-             embedded_count,
-             embedded_list);
+    // 파일 이름에서 마지막 점(.) 위치 찾기
+    const char *last_dot = strrchr(filename, '.');
+    if (last_dot != NULL && last_dot != filename) {
+        // 두 번째 마지막 점 찾기
+        const char *second_last_dot = NULL;
+        for (const char *p = filename; p < last_dot; p++) {
+            if (*p == '.') {
+                second_last_dot = p;
+            }
+        }
+
+        if (second_last_dot != NULL && second_last_dot != filename) {
+            double_extension = 1;
+            // 이중 확장자 목록 구성
+            snprintf(double_extension_list, sizeof(double_extension_list), "%s%s",
+                     second_last_dot, last_dot);
+        }
+    }
+
+    // 추가: embedded_count, embedded_list, double_extension, double_extension_list 값을 다시 출력하여 확인
+    printf("최종 embedded_count: %d\n", embedded_count);
+    printf("최종 embedded_list: %s\n", embedded_list);
+    printf("이중 확장자 여부: %s\n", double_extension ? "있음" : "없음");
+    if (double_extension) {
+        printf("이중 확장자 목록: %s\n", double_extension_list);
+    }
+
+    // 결과를 result 버퍼에 저장 (숨겨진 파일 목록 및 이중 확장자 추가)
+    if (double_extension) {
+        snprintf(result, result_size, "분석 완료: %s\n시그니처 검사: %s\n숨겨진 파일: %d개\n숨겨진 파일 목록: %s\n이중 확장자: 있음\n이중 확장자 목록: %s",
+                 filename, 
+                 (verify_result ? "일치" : "불일치"),
+                 embedded_count,
+                 embedded_list,
+                 double_extension_list);
+    } else {
+        snprintf(result, result_size, "분석 완료: %s\n시그니처 검사: %s\n숨겨진 파일: %d개\n숨겨진 파일 목록: %s\n이중 확장자: 없음",
+                 filename, 
+                 (verify_result ? "일치" : "불일치"),
+                 embedded_count,
+                 embedded_list);
+    }
 
     free(data);
     return 1;
