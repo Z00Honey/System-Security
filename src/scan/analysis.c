@@ -155,8 +155,8 @@ DLL_EXPORT int analyze_file(const char* filename, char* result, int result_size)
         if (second_last_dot != NULL && second_last_dot != filename) {
             double_extension = 1;
             // 이중 확장자 목록 구성
-            snprintf(double_extension_list, sizeof(double_extension_list), "%s%s",
-                     second_last_dot, last_dot);
+            snprintf(double_extension_list, sizeof(double_extension_list), "%s",
+                     second_last_dot);
         }
     }
 
