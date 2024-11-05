@@ -11,10 +11,11 @@ class PasswordManager:
         self.setup = False
         self.password = None
         self.email = None
-        self.correct_verification_code = 111111
+        self.correct_verification_code = None
         self.timer = None
         self.remaining_time = 0
 
+    #################################################초기설정↓↓↓↓
     def set_initial_password(self, parent=None):
         # 비밀번호 초기 설정 창
         dialog = QDialog(parent)
@@ -117,6 +118,47 @@ class PasswordManager:
         dialog.setLayout(main_layout)
         dialog.exec_()
 
+    def check_inputs(self):
+        # 입력 필드 상태 확인 및 설정 버튼 활성화/비활성화 처리
+        password = self.password_input.text()
+        confirm_password = self.confirm_password_input.text()
+        email = self.email_input.text()
+        verification_code = self.verification_code_input.text()
+
+        # 비밀번호 조건 확인
+        if len(password) < 6 or len(password) > 14:
+            self.password_warning_label.setText("* 6~14 자리로 설정해 주세요")
+        elif password != confirm_password:
+            self.password_warning_label.setText("* 비밀번호가 일치하지 않습니다")
+        else:
+            self.password_warning_label.setText("비밀번호가 일치합니다.")
+            self.password_warning_label.setStyleSheet("font-size: 9pt; color: green; font-family: Arial;")
+
+        # 이메일 형식 확인
+        email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        if not re.match(email_pattern, email):
+            self.email_warning_label.setText("* 이메일 형식을 작성해 주세요")
+            self.send_code_button.setEnabled(False)
+        else:
+            self.email_warning_label.setText("")
+            self.send_code_button.setEnabled(True)
+
+        # 모든 필수 입력값이 올바르게 입력되었는지 확인
+        if 6 <= len(password) <= 14 and password == confirm_password and re.match(email_pattern, email) and verification_code == self.correct_verification_code:
+            self.submit_button.setEnabled(True)
+        else:
+            self.submit_button.setEnabled(False)
+
+    def handle_initial_setup(self, dialog):
+        # 초기 설정 완료 처리
+        self.password = self.password_input.text()
+        self.email = self.email_input.text()
+        self.setup=True
+        QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
+        dialog.accept()
+    #################################################초기설정↑↑↑↑
+
+    #################################################이메일전송↓↓↓↓
     # 인증 코드 보내기 메소드 추가됨
     def send_verification_code(self):
         try:
@@ -160,44 +202,6 @@ class PasswordManager:
             self.timer.stop()
             self.timer_label.setText("인증 코드가 만료되었습니다. 다시 시도해 주세요.")
             self.correct_verification_code = None
-
-    def check_inputs(self):
-        # 입력 필드 상태 확인 및 설정 버튼 활성화/비활성화 처리
-        password = self.password_input.text()
-        confirm_password = self.confirm_password_input.text()
-        email = self.email_input.text()
-        verification_code = self.verification_code_input.text()
-
-        # 비밀번호 조건 확인
-        if len(password) < 6 or len(password) > 14:
-            self.password_warning_label.setText("* 6~14 자리로 설정해 주세요")
-        elif password != confirm_password:
-            self.password_warning_label.setText("* 비밀번호가 일치하지 않습니다")
-        else:
-            self.password_warning_label.setText("비밀번호가 일치합니다.")
-            self.password_warning_label.setStyleSheet("font-size: 9pt; color: green; font-family: Arial;")
-
-        # 이메일 형식 확인
-        email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-        if not re.match(email_pattern, email):
-            self.email_warning_label.setText("* 이메일 형식을 작성해 주세요")
-            self.send_code_button.setEnabled(False)
-        else:
-            self.email_warning_label.setText("")
-            self.send_code_button.setEnabled(True)
-
-        # 모든 필수 입력값이 올바르게 입력되었는지 확인
-        if 6 <= len(password) <= 14 and password == confirm_password and re.match(email_pattern, email) and verification_code == self.correct_verification_code:
-            self.submit_button.setEnabled(True)
-        else:
-            self.submit_button.setEnabled(False)
-
-    def handle_initial_setup(self, dialog):
-        # 초기 설정 완료 처리
-        self.password = self.password_input.text()
-        self.email = self.email_input.text()
-        self.setup=True
-        QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
-        dialog.accept()
-
+    #################################################이메일전송↑↑↑↑
+            
 

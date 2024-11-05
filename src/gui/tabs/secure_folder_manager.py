@@ -42,6 +42,7 @@ class SecureFolderManager:
         cancel_button.setFont(QFont("Arial", 10))
         confirm_button = QPushButton("확인")
         confirm_button.setFont(QFont("Arial", 10))
+        confirm_button.setDefault(True)  # "확인" 버튼을 기본으로 설정
         
         # 버튼 클릭 이벤트 연결
         cancel_button.clicked.connect(dialog.reject)
@@ -116,3 +117,5 @@ class SecureFolderManager:
             dialog.accept()
         else:
             QMessageBox.warning(dialog, "인증 실패", "인증 코드가 일치하지 않습니다.")
+
+    
