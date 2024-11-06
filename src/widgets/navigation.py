@@ -35,5 +35,4 @@ class NavigationWidget(QWidget):
         button_size = 40
         button.setFixedSize(button_size, button_size)
         button.setIconSize(QSize(icon_size, icon_size))
-        button.setStyleSheet("border-radius: 20px; padding: 0px;")
         return button
