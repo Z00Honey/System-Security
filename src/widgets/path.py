@@ -24,7 +24,7 @@ class PathBar(QWidget):
         self.setStyleSheet(load_stylesheet("path.css"))
 
     def update_path(self, new_path: str):
-        self.path_label.setText(new_path) 
+        self.path_label.setText(new_path)
 
 
 

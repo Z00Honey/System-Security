@@ -51,6 +51,8 @@ class MainWindow(QMainWindow):
 
         self.tool_bar = ToolBar(self)
         self.layout.addWidget(self.tool_bar)
+        
+        self.add_horizontal_separator()
 
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
