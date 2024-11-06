@@ -65,10 +65,11 @@ class SecureFolderManager:
         return False
 
     def verify_password(self, password, dialog):
-        if password == self.pwd_mgr.password:
+        if self.pwd_mgr.authenticate_user(password):
             dialog.accept()
         else:
             QMessageBox.warning(dialog, "인증 실패", "비밀번호가 일치하지 않습니다.")
+
 
     def temp_auth(self, dialog):
         # 이메일 인증 코드 전송
