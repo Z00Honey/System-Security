@@ -5,15 +5,28 @@ import sys
 import smtplib
 import random
 from email.mime.text import MIMEText
+import ctypes
+import os
+import json
+
 
 class PasswordManager:
     def __init__(self):
         self.setup = False
-        self.password = None
+        self.password_hash = None
+        self.salt = None
         self.email = None
         self.correct_verification_code = None
         self.timer = None
         self.remaining_time = 0
+        self.config_file = "config.json"
+
+        self.load_config()
+
+        # DLL 로드 및 해시 함수 정의 (세 개의 인자 받도록 수정)
+        self.hasher = ctypes.CDLL('C:/Users/user/Desktop/github/System-Security/src/gui/tabs/hashing.dll')
+        self.hasher.hash_password.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_ubyte)]
+        self.hasher.hash_password.restype = None
 
     #################################################초기설정↓↓↓↓
     def set_initial_password(self, parent=None):
@@ -77,7 +90,6 @@ class PasswordManager:
         self.send_code_button.setStyleSheet("font-size: 10pt; font-family: Arial;")
         self.send_code_button.setEnabled(False)
         self.send_code_button.clicked.connect(self.send_verification_code)
-        
         main_layout.addWidget(self.send_code_button)
 
         # 인증 코드 입력
@@ -128,8 +140,10 @@ class PasswordManager:
         # 비밀번호 조건 확인
         if len(password) < 6 or len(password) > 14:
             self.password_warning_label.setText("* 6~14 자리로 설정해 주세요")
+            self.password_warning_label.setStyleSheet("font-size: 9pt; color: red; font-family: Arial;")
         elif password != confirm_password:
             self.password_warning_label.setText("* 비밀번호가 일치하지 않습니다")
+            self.password_warning_label.setStyleSheet("font-size: 9pt; color: red; font-family: Arial;")
         else:
             self.password_warning_label.setText("비밀번호가 일치합니다.")
             self.password_warning_label.setStyleSheet("font-size: 9pt; color: green; font-family: Arial;")
@@ -151,9 +165,20 @@ class PasswordManager:
 
     def handle_initial_setup(self, dialog):
         # 초기 설정 완료 처리
-        self.password = self.password_input.text()
+        password = self.password_input.text().encode('utf-8')
+        # 솔트 생성 및 비밀번호와 결합
+        self.salt = os.urandom(16)  # 16 바이트 솔트 생성
+        password_with_salt = self.salt + password
+        # DLL 호출을 통한 해싱 (세 개의 인자 전달)
+        hashed_password = (ctypes.c_ubyte * 32)()
+        self.hasher.hash_password(password, self.salt, hashed_password)
+
+        # 해시된 비밀번호 및 이메일 저장
+        self.password_hash = bytes(hashed_password)
         self.email = self.email_input.text()
-        self.setup=True
+        self.setup = True  # 초기 설정 완료
+        self.save_config()  # 설정 저장
+
         QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
         dialog.accept()
     #################################################초기설정↑↑↑↑
@@ -203,5 +228,35 @@ class PasswordManager:
             self.timer_label.setText("인증 코드가 만료되었습니다. 다시 시도해 주세요.")
             self.correct_verification_code = None
     #################################################이메일전송↑↑↑↑
-            
 
+    #################################################설정값저장↓↓↓↓
+    #설정 정보를 파일에서 불러오는 함수
+    def load_config(self):
+         if os.path.exists(self.config_file):
+            with open(self.config_file, "r") as file:
+                config = json.load(file)
+                self.setup = config.get("setup", False)
+                self.password_hash = bytes.fromhex(config.get("password_hash", "")) if config.get("password_hash") else None
+                self.salt = bytes.fromhex(config.get("salt", "")) if config.get("salt") else None
+                self.email = config.get("email", None)
+    #설정 정보를 파일에 저장하는 함수
+    def save_config(self):
+        config = {
+            "setup": self.setup,
+            "password_hash": self.password_hash.hex() if self.password_hash else None,
+            "salt": self.salt.hex() if self.salt else None,
+            "email": self.email
+        }
+        with open(self.config_file, "w") as file:
+            json.dump(config, file)
+
+    def authenticate_user(self, password):
+        """입력한 비밀번호가 저장된 해시와 일치하는지 확인"""
+        password_with_salt = self.salt + password.encode('utf-8')
+        hashed_password = (ctypes.c_ubyte * 32)()
+        self.hasher.hash_password(password.encode('utf-8'), self.salt, hashed_password)
+        
+        # 저장된 해시와 비교하여 인증 결과 반환
+        return bytes(hashed_password) == self.password_hash
+    #################################################설정값저장↑↑↑↑
+    
