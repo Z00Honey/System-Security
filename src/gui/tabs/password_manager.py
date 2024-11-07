@@ -19,7 +19,7 @@ class PasswordManager:
         self.correct_verification_code = None
         self.timer = None
         self.remaining_time = 0
-        self.config_file = "config.json"
+        self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
         self.load_config()
 
@@ -239,6 +239,7 @@ class PasswordManager:
                 self.password_hash = bytes.fromhex(config.get("password_hash", "")) if config.get("password_hash") else None
                 self.salt = bytes.fromhex(config.get("salt", "")) if config.get("salt") else None
                 self.email = config.get("email", None)
+    
     #설정 정보를 파일에 저장하는 함수
     def save_config(self):
         config = {
