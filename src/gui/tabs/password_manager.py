@@ -24,7 +24,9 @@ class PasswordManager:
         self.load_config()
 
         # DLL 로드 및 해시 함수 정의 (세 개의 인자 받도록 수정)
-        self.hasher = ctypes.CDLL('C:/Users/user/Desktop/github/System-Security/src/gui/tabs/hashing.dll')
+        current_directory = os.path.dirname(__file__)
+        dll_path = os.path.join(current_directory, 'hashing.dll')
+        self.hasher = ctypes.CDLL(dll_path)
         self.hasher.hash_password.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_ubyte)]
         self.hasher.hash_password.restype = None
 
