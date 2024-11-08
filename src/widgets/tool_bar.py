@@ -73,12 +73,18 @@ class ToolBar(QWidget):
         if main_window.file_list.model.isDir(current_index):
             QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
             return
-
-        # 파일 분석 실행
-        result = analyze_file(file_path)
+            
+        # 확인 메시지 표시
+        reply = QMessageBox.question(self, 
+                                   '확장자 검사', 
+                                   f'선택한 파일을 검사하시겠습니까?\n\n파일: {file_path}',
+                                   QMessageBox.Yes | QMessageBox.No, 
+                                   QMessageBox.No)
         
-        # 결과 표시
-        QMessageBox.information(self, "분석 결과", result)
+        if reply == QMessageBox.Yes:
+            # 파일 분석 실행
+            result = analyze_file(file_path)
+            QMessageBox.information(self, "분석 결과", result)
 
     def run_virus_check(self):
         print("바이러스 검사 실행")
