@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
 from widgets.title_bar import WidgetTitleBar
 from widgets.address_bar import AddressBar
 from widgets.tool_bar import ToolBar
+from widgets.file_list import FileListView
 
 
 from utils.native.util import setWindowNonResizable, isWindowResizable
@@ -54,6 +55,13 @@ class MainWindow(QMainWindow):
         
         self.add_horizontal_separator()
 
+        # 파일 목록 위젯 추가
+        self.file_list = FileListView(self)
+        self.layout.addWidget(self.file_list)
+        
+        # 경로 변경 시 주소 표시줄 업데이트
+        self.file_list.path_changed.connect(self.address_bar.path_bar.update_path)
+        
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.addStretch()
