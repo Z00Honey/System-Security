@@ -22,6 +22,7 @@ class WidgetTitleBar(QWidget):
         super().__init__(parent)
         self.parent = parent
 
+        self.default_stylesheet = load_stylesheet("title_bar.css")
         self.background_color = "#d9f3ff"
         
         self.setFixedHeight(80)
@@ -52,9 +53,11 @@ class WidgetTitleBar(QWidget):
         self.newtab_widget = WidgetNewTab()
         top_layout.addWidget(self.newtab_widget)
 
-        # newtab 추가 버튼
-        newtab_add_layout = self.newtab_add_button_layout()
-        top_layout.addLayout(newtab_add_layout)
+        newtabs_layout.addWidget(self.newtab_widget)
+        self.main_layout.addLayout(newtabs_layout)
+
+        newtab_add_layout : QHBoxLayout = self.newtab_add_button_layout()
+        self.main_layout.addLayout(newtab_add_layout)
 
         # 창 컨트롤 버튼
         controls_layout = self.window_control_layout()
@@ -91,10 +94,14 @@ class WidgetTitleBar(QWidget):
         button.setObjectName("plus")
         button.setSizePolicy(self.size_policy)
         button.setIcon(QIcon(image_base_path("plus.png")))
+        button.clicked.connect(self.EventTabAddition)
 
         layout.addWidget(button)
 
         return layout
+    
+    def EventTabAddition(self):
+        self.newtab_widget.add_tab_widget("hello")
 
     def window_control_layout(self):
 
