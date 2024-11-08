@@ -6,8 +6,6 @@ from enum import IntEnum, auto, Enum
 
 from utils.load import load_stylesheet, image_base_path
 from widgets.tabs import WidgetNewTab
-from utils.analysis import analyze_file
-from PyQt5.QtWidgets import QMessageBox
 
 class MaximizeButtonState(IntEnum):
     HOVER = auto()
@@ -24,17 +22,17 @@ class WidgetTitleBar(QWidget):
 
         self.default_stylesheet = load_stylesheet("title_bar.css")
         self.background_color = "#d9f3ff"
-        
-        self.setFixedHeight(80)
+
+        self.setFixedHeight(50)
         self.size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         self.init()
 
     def init(self):
+
         self.setContentsMargins(0, 0, 0, 0)
-        
-        # QHBoxLayout에서 QVBoxLayout으로 변경
-        self.main_layout = QVBoxLayout()
+
+        self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
@@ -44,14 +42,10 @@ class WidgetTitleBar(QWidget):
         self.setStyleSheet(load_stylesheet("title_bar.css"))
 
     def addition_layouts(self):
-        # 상단 tabs 레이아웃
-        top_layout = QHBoxLayout()
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.setSpacing(0)
+        self.title_bar_layout()
 
-        # newtabs 추가
+        newtabs_layout = QHBoxLayout()
         self.newtab_widget = WidgetNewTab()
-        top_layout.addWidget(self.newtab_widget)
 
         newtabs_layout.addWidget(self.newtab_widget)
         self.main_layout.addLayout(newtabs_layout)
@@ -59,23 +53,8 @@ class WidgetTitleBar(QWidget):
         newtab_add_layout : QHBoxLayout = self.newtab_add_button_layout()
         self.main_layout.addLayout(newtab_add_layout)
 
-        # 창 컨트롤 버튼
         controls_layout = self.window_control_layout()
-        top_layout.addLayout(controls_layout)
-
-        self.main_layout.addLayout(top_layout)
-
-        # 하단 title bar 레이아웃
-        bottom_layout = QHBoxLayout()
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_layout.setSpacing(0)
-
-        # 확장자 검사 버튼
-        extension_check_layout = self.extension_check_button_layout()
-        bottom_layout.addLayout(extension_check_layout)
-        bottom_layout.addStretch()
-
-        self.main_layout.addLayout(bottom_layout)
+        self.main_layout.addLayout(controls_layout)
 
     def title_bar_layout(self):
         palette = self.palette()
@@ -174,39 +153,3 @@ class WidgetTitleBar(QWidget):
 
     def minimze_button_event(self) -> None:
         self.parent.showMinimized()
-
-    def extension_check_button_layout(self):
-        layout = QHBoxLayout()
-        layout.setContentsMargins(20, 0, 0, 0) 
-        layout.setAlignment(Qt.AlignLeft)
-
-        button = QPushButton()
-        button.setObjectName("extension_check")
-        button.setToolTip("확장자 검사")
-        button.setSizePolicy(self.size_policy)
-        button.setIcon(QIcon(image_base_path("extension_check.png")))
-        button.setFixedSize(30, 30)
-        
-        # 클릭 이벤트 추가
-        button.clicked.connect(self.on_extension_check)
-
-        layout.addWidget(button)
-        return layout
-
-    def on_extension_check(self):
-        # 현재 선택된 파일 가져오기
-        current_index = self.parent.tree.currentIndex()
-        if not current_index.isValid():
-            QMessageBox.warning(self, "경고", "파일을 선택해주세요.")
-            return
-
-        file_path = self.parent.model.filePath(current_index)
-        if self.parent.model.isDir(current_index):
-            QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
-            return
-
-        # 파일 분석 실행
-        result = analyze_file(file_path)
-        
-        # 결과 표시
-        QMessageBox.information(self, "분석 결과", result)
