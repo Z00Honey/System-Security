@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QApplication
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,QProgressDialog, QMessageBox, QApplication
 from PyQt5.QtCore import Qt, QTimer
 import re
 import sys
@@ -6,6 +6,7 @@ import smtplib
 import random
 from email.mime.text import MIMEText
 import ctypes
+from ctypes import c_char_p, POINTER, c_ubyte, c_int
 import os
 import json
 
@@ -21,14 +22,24 @@ class PasswordManager:
         self.remaining_time = 0
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
-        self.load_config()
-
         # DLL 로드 및 해시 함수 정의 (세 개의 인자 받도록 수정)
         current_directory = os.path.dirname(__file__)
         dll_path = os.path.join(current_directory, 'hashing.dll')
         self.hasher = ctypes.CDLL(dll_path)
+        
+        dll_path1 = os.path.join(current_directory, 'salthide.dll')
+        self.salthide = ctypes.CDLL(dll_path1)
+
         self.hasher.hash_password.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_ubyte)]
         self.hasher.hash_password.restype = None
+
+        self.salthide.encrypt_message.argtypes = [c_char_p, POINTER(c_ubyte)]
+        self.salthide.encrypt_message.restype = c_int
+
+        self.salthide.decrypt_message.argtypes = [POINTER(c_ubyte), POINTER(c_ubyte), c_int]
+        self.salthide.decrypt_message.restype = c_int
+
+        self.load_config()
 
     #################################################초기설정↓↓↓↓
     def set_initial_password(self, parent=None):
@@ -168,10 +179,18 @@ class PasswordManager:
     def handle_initial_setup(self, dialog):
         # 초기 설정 완료 처리
         password = self.password_input.text().encode('utf-8')
-        # 솔트 생성 및 비밀번호와 결합
+        # 솔트 생성 및 암호화 저장
         self.salt = os.urandom(16)  # 16 바이트 솔트 생성
-        password_with_salt = self.salt + password
-        # DLL 호출을 통한 해싱 (세 개의 인자 전달)
+        cipher_buffer = (c_ubyte * (len(self.salt) + 16))()
+        result = self.salthide.encrypt_message(c_char_p(self.salt), cipher_buffer)
+        if result != 0:
+            QMessageBox.warning(dialog, "오류", "솔트 암호화에 실패했습니다.")
+            return
+        encrypted_text = bytes(cipher_buffer)
+        with open(os.path.join(os.path.dirname(__file__), "encrypted_data.bin"), "wb") as f:
+            f.write(encrypted_text)
+
+        # 비밀번호와 솔트 결합 후 해싱
         hashed_password = (ctypes.c_ubyte * 32)()
         self.hasher.hash_password(password, self.salt, hashed_password)
 
@@ -183,6 +202,7 @@ class PasswordManager:
 
         QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
         dialog.accept()
+
     #################################################초기설정↑↑↑↑
 
     #################################################이메일전송↓↓↓↓
@@ -193,22 +213,38 @@ class PasswordManager:
             smtp_port = 587  # SMTP 포트 번호
             smtp_user = "neoclick04@gmail.com"  # 보내는 이메일 주소
             smtp_password = "ldkf yfoa oznz cchp"  # 이메일 비밀번호
+            timerset=False
+            if self.email == None:
+                timerset=True
+                recipient_email = self.email_input.text()
+            else:
+                recipient_email=self.email
+            
+            progress_dialog = QProgressDialog(None)  # 부모를 None으로 설정
+            progress_dialog.setWindowTitle("잠시만 기다려주세요")
+            progress_dialog.setLabelText("인증 코드를 보내는 중입니다...")
+            progress_dialog.setFixedSize(300, 100)  # 창 크기 조정
+            progress_dialog.setWindowModality(Qt.ApplicationModal)  # 창이 닫힐 때까지 다른 작업 불가
+            progress_dialog.setMinimumDuration(0)  # 즉시 창 표시
+            progress_dialog.setCancelButton(None)  # 취소 버튼 제거
+            progress_dialog.show()
 
-            recipient_email = self.email_input.text()
             self.correct_verification_code = str(random.randint(100000, 999999))  # 인증 코드 생성
 
             msg = MIMEText(f"인증 코드: {self.correct_verification_code}")
             msg['Subject'] = "보안 폴더 인증 코드"
             msg['From'] = smtp_user
             msg['To'] = recipient_email
-
+           
             with smtplib.SMTP(smtp_server, smtp_port) as server:
                 server.starttls()
                 server.login(smtp_user, smtp_password)
                 server.sendmail(smtp_user, recipient_email, msg.as_string())
-
+                server.quit()  # 명시적으로 서버 연결 종료
+            progress_dialog.close()  # 대기창 닫기
             QMessageBox.information(None, "인증 코드 전송", "인증 코드가 전송되었습니다.")
-            self.start_timer()
+            if(timerset==True):
+                self.start_timer()
         except Exception as e:
             QMessageBox.warning(None, "오류", f"인증 코드를 보내는 중 오류가 발생했습니다: {e}")
 
@@ -234,12 +270,23 @@ class PasswordManager:
     #################################################설정값저장↓↓↓↓
     #설정 정보를 파일에서 불러오는 함수
     def load_config(self):
-         if os.path.exists(self.config_file):
+         # 저장된 암호문 불러오기
+        if os.path.exists(os.path.join(os.path.dirname(__file__), "encrypted_data.bin")):
+            with open(os.path.join(os.path.dirname(__file__), "encrypted_data.bin"), "rb") as f:
+                loaded_ciphertext = f.read()
+            loaded_ciphertext_length = len(loaded_ciphertext)
+            loaded_ciphertext_buffer = (c_ubyte * loaded_ciphertext_length).from_buffer_copy(loaded_ciphertext)
+            decrypted_buffer = (c_ubyte * (loaded_ciphertext_length - 16))()
+            result_decrypt = self.salthide.decrypt_message(loaded_ciphertext_buffer, decrypted_buffer, loaded_ciphertext_length)
+            if result_decrypt != 0:
+                raise ValueError("솔트 복호화에 실패했습니다.")
+            self.salt = bytes(decrypted_buffer)
+
+        if os.path.exists(self.config_file):
             with open(self.config_file, "r") as file:
                 config = json.load(file)
                 self.setup = config.get("setup", False)
                 self.password_hash = bytes.fromhex(config.get("password_hash", "")) if config.get("password_hash") else None
-                self.salt = bytes.fromhex(config.get("salt", "")) if config.get("salt") else None
                 self.email = config.get("email", None)
     
     #설정 정보를 파일에 저장하는 함수
@@ -247,7 +294,6 @@ class PasswordManager:
         config = {
             "setup": self.setup,
             "password_hash": self.password_hash.hex() if self.password_hash else None,
-            "salt": self.salt.hex() if self.salt else None,
             "email": self.email
         }
         with open(self.config_file, "w") as file:
@@ -255,11 +301,12 @@ class PasswordManager:
 
     def authenticate_user(self, password):
         """입력한 비밀번호가 저장된 해시와 일치하는지 확인"""
-        password_with_salt = self.salt + password.encode('utf-8')
+        if not self.salt:
+            return False
+
         hashed_password = (ctypes.c_ubyte * 32)()
         self.hasher.hash_password(password.encode('utf-8'), self.salt, hashed_password)
         
         # 저장된 해시와 비교하여 인증 결과 반환
         return bytes(hashed_password) == self.password_hash
     #################################################설정값저장↑↑↑↑
-    

@@ -110,13 +110,12 @@ class SecureFolderManager:
         if verification_dialog.exec_() == QDialog.Accepted:
             self.authenticated = True
             dialog.accept()
-        else:
-            QMessageBox.warning(dialog, "인증 실패", "인증 코드가 일치하지 않습니다.")
+        
+            
 
     def verify_code(self, code, dialog):
         if code == self.pwd_mgr.correct_verification_code:
             dialog.accept()
         else:
             QMessageBox.warning(dialog, "인증 실패", "인증 코드가 일치하지 않습니다.")
-
     
