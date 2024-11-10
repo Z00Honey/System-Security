@@ -179,6 +179,7 @@ class PasswordManager:
     def handle_initial_setup(self, dialog):
         # 초기 설정 완료 처리
         password = self.password_input.text().encode('utf-8')
+        
         # 솔트 생성 및 암호화 저장
         self.salt = os.urandom(16)  # 16 바이트 솔트 생성
         cipher_buffer = (c_ubyte * (len(self.salt) + 16))()
@@ -194,11 +195,23 @@ class PasswordManager:
         hashed_password = (ctypes.c_ubyte * 32)()
         self.hasher.hash_password(password, self.salt, hashed_password)
 
-        # 해시된 비밀번호 및 이메일 저장
+        # 해시된 비밀번호 저장
         self.password_hash = bytes(hashed_password)
-        self.email = self.email_input.text()
-        self.setup = True  # 초기 설정 완료
+        
+        # 이메일 암호화 및 저장 (수정된 부분)
+        email_data = self.email_input.text().encode('utf-8')
+        email_buffer = (c_ubyte * (len(email_data) + 16))()
+        result = self.salthide.encrypt_message(c_char_p(email_data), email_buffer)
+        if result != 0:
+            QMessageBox.warning(dialog, "오류", "이메일 암호화에 실패했습니다.")
+            return
+        self.email = bytes(email_buffer).hex()  # JSON에 저장할 수 있도록 hex 형식으로 변환
+
+        # 초기 설정 완료
+        self.setup = True
         self.save_config()  # 설정 저장
+        self.load_config()
+
 
         QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
         dialog.accept()
@@ -270,7 +283,7 @@ class PasswordManager:
     #################################################설정값저장↓↓↓↓
     #설정 정보를 파일에서 불러오는 함수
     def load_config(self):
-         # 저장된 암호문 불러오기
+        # 저장된 암호문(솔트) 불러오기 및 복호화
         if os.path.exists(os.path.join(os.path.dirname(__file__), "encrypted_data.bin")):
             with open(os.path.join(os.path.dirname(__file__), "encrypted_data.bin"), "rb") as f:
                 loaded_ciphertext = f.read()
@@ -282,12 +295,25 @@ class PasswordManager:
                 raise ValueError("솔트 복호화에 실패했습니다.")
             self.salt = bytes(decrypted_buffer)
 
+        # JSON 파일에서 설정 불러오기
         if os.path.exists(self.config_file):
             with open(self.config_file, "r") as file:
                 config = json.load(file)
                 self.setup = config.get("setup", False)
                 self.password_hash = bytes.fromhex(config.get("password_hash", "")) if config.get("password_hash") else None
-                self.email = config.get("email", None)
+                
+                # 이메일 복호화 (수정된 부분)
+                if config.get("email"):
+                    encrypted_email = bytes.fromhex(config["email"])  # hex 형식의 암호화된 이메일 불러오기
+                    encrypted_email_buffer = (c_ubyte * len(encrypted_email)).from_buffer_copy(encrypted_email)
+                    decrypted_email_buffer = (c_ubyte * (len(encrypted_email) - 16))()  # 복호화된 데이터를 담을 버퍼
+                    result_decrypt = self.salthide.decrypt_message(encrypted_email_buffer, decrypted_email_buffer, len(encrypted_email))
+                    if result_decrypt != 0:
+                        raise ValueError("이메일 복호화에 실패했습니다.")
+                    self.email = bytes(decrypted_email_buffer).decode('utf-8')  # 복호화된 이메일을 평문으로 변환
+                else:
+                    self.email = None
+
     
     #설정 정보를 파일에 저장하는 함수
     def save_config(self):
