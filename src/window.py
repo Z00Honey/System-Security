@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
 from widgets.title_bar import WidgetTitleBar
 from widgets.address_bar import AddressBar
 from widgets.tool_bar import ToolBar
-
+from widgets.file_explorer_bar import FileExplorerBar
 
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
@@ -18,7 +18,6 @@ class MainWindow(QMainWindow):
 
     def init_GUI(self):
         self.setWindowTitle("FILE Explorer")
-        # self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setGeometry(*(self.auto_position()))
         self.setObjectName("main")
@@ -29,7 +28,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.layout : QVBoxLayout = QVBoxLayout(self.central_widget)
-        # self.layout.setAttribute(Qt.WA_TranslucentBackground)
 
         self.init_layout()
         self.qss_load()
@@ -38,7 +36,6 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(load_stylesheet("main.css")) 
 
     def init_layout(self) -> None:
-
         self.title_bar = WidgetTitleBar(self)
         self.layout.addWidget(self.title_bar)
 
@@ -54,19 +51,19 @@ class MainWindow(QMainWindow):
         
         self.add_horizontal_separator()
 
+        self.file_explorer_bar = FileExplorerBar(self)  # FileExplorerBar를 수평 레이아웃에 추가
+        self.layout.addWidget(self.file_explorer_bar)
+        
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.addStretch()
 
     def auto_position(self) -> tuple:
-
         display = get_monitors()[0]
-
         width = 1920
         height = 1080
         x = (display.width - width) // 2
         y = (display.height - height) // 2
-
         return (x, y if y else 100, width, height)
     
     def add_horizontal_separator(self) -> None:

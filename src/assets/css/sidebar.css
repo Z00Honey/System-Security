@@ -1,0 +1,45 @@
+#sidebar {
+    background-color: #f7f7f7;
+    padding: 10px;
+    width: 250px;
+    border-right: 1px solid #ccc;
+}
+
+#file_directory {
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    padding: 5px;
+}
+
+QPushButton {
+    border: none;
+    background: transparent;
+    padding: 5px;
+    text-align: left;
+}
+
+QPushButton:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+QPushButton:focus {
+    outline: none;
+}
+
+QPushButton QIcon {
+    margin-right: 10px;
+}
+
+QLabel {
+    margin-left: 10px; 
+}
+
+QFrame {
+    margin: 10px 0;
+}
+
+QPushButton:pressed {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+
