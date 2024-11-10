@@ -12,6 +12,18 @@ import json
 
 
 class PasswordManager:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        
     def __init__(self):
         self.setup = False
         self.password_hash = None
@@ -210,7 +222,8 @@ class PasswordManager:
         # 초기 설정 완료
         self.setup = True
         self.save_config()  # 설정 저장
-        self.load_config()
+        self.load_config() 
+        #QMessageBox.information(dialog, "비번:"+self.password_hash)
 
 
         QMessageBox.information(dialog, "설정 완료", "초기 설정이 완료되었습니다.")
@@ -336,3 +349,35 @@ class PasswordManager:
         # 저장된 해시와 비교하여 인증 결과 반환
         return bytes(hashed_password) == self.password_hash
     #################################################설정값저장↑↑↑↑
+
+    #################################################RESET↓↓↓↓
+    def reset(self, parent=None):
+        reply = QMessageBox.warning(parent, "초기화 확인", 
+                                    "설정을 초기화하시겠습니까? 이 작업은 모든 저장된 데이터를 삭제합니다.", 
+                                    QMessageBox.Yes | QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            try:
+                # 설정 파일 삭제
+                if os.path.exists(self.config_file):
+                    os.remove(self.config_file)
+
+                # 암호화된 데이터 파일 삭제
+                encrypted_data_path = os.path.join(os.path.dirname(__file__), "encrypted_data.bin")
+                if os.path.exists(encrypted_data_path):
+                    os.remove(encrypted_data_path)
+
+                # 모든 관련 변수 초기화
+                self._initialized = False
+                self.__init__()  # 인스턴스 재초기화
+
+                QMessageBox.information(parent, "초기화 완료", "모든 설정이 초기화되었습니다. 다시 설정을 진행해 주세요.")
+                
+                # 초기 설정을 다시 진행
+                self.set_initial_password(parent)
+
+            except Exception as e:
+                QMessageBox.critical(parent, "오류", f"초기화 중 오류가 발생했습니다: {str(e)}")
+
+    #################################################RESET↑↑↑↑
+
