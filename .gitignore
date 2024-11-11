@@ -7,11 +7,6 @@ test.py
 !*/
 !Makefile
 
-### MSVC ###
-.vs/*
-.vscode/*
-CppProperties.json
-
 ### C ###
 # Prerequisites
 *.d
