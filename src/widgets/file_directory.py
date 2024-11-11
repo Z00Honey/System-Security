@@ -11,7 +11,6 @@ class FileDirectory(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(5)
 
-        # 각 버튼을 생성 (아이콘과 텍스트 포함)
         self.home_button = self.create_button("home.png", "홈 디렉토리")
         self.pc_button = self.create_button("pc.png", "내 PC")
         self.desktop_button = self.create_button("desktop.png", "바탕화면")
@@ -19,7 +18,6 @@ class FileDirectory(QWidget):
         self.downloads_button = self.create_button("downloads.png", "다운로드")
         self.folder_button = self.create_button("folder.png", "폴더")
 
-        # 버튼을 레이아웃에 추가
         self.layout.addWidget(self.home_button)
         self.layout.addWidget(self.pc_button)
         self.layout.addWidget(self.desktop_button)

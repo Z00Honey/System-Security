@@ -18,7 +18,6 @@ class FileList(QWidget):
         # 각 열의 너비를 설정하여 수평 스크롤이 생기지 않도록
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        # QVBoxLayout 객체 생성, 여백을 0으로 설정
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)  # 여백 없애기
         self.layout.setSpacing(0)  # 아이템 간의 간격도 없애기
@@ -26,13 +25,12 @@ class FileList(QWidget):
         # QScrollArea를 사용하여 스크롤을 추가
         scroll_area = QScrollArea(self)
         scroll_area.setWidget(self.table)
-        scroll_area.setWidgetResizable(True)  # 크기 자동 조정
-        scroll_area.setContentsMargins(0, 0, 0, 0)  # 스크롤 영역 여백 없애기
+        scroll_area.setWidgetResizable(True) 
+        scroll_area.setContentsMargins(0, 0, 0, 0) 
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 수평 스크롤 숨기기
 
-        self.layout.addWidget(scroll_area)  # 스크롤 영역을 레이아웃에 추가
+        self.layout.addWidget(scroll_area) 
 
-        # 레이아웃을 위젯에 설정
         self.setLayout(self.layout)
         self.setStyleSheet(load_stylesheet("file_list.css"))
         self.setObjectName("file_list")
