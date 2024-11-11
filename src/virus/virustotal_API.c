@@ -5,7 +5,7 @@
 #include <curl/curl.h>
 #include <windows.h>
 
-#define ENV_VAR_KEY "VIRUSTOTAL_API_KEY"
+#define API_KEY "e1c9553c05b003a64aa11ce3ea940dddb28bd8a46b88de366b7e3551e899f921"
 
 // MemoryStruct 구조체 정의
 struct MemoryStruct {
@@ -90,14 +90,6 @@ __declspec(dllexport) void scan_file_with_virustotal(const char* file_hash) {
     struct curl_slist* headers = NULL;
     struct MemoryStruct chunk = { NULL, 0 };
 
-    // 환경 변수에서 API 키 가져오기
-    char api_key[100];
-    DWORD api_key_length = GetEnvironmentVariable(ENV_VAR_KEY, api_key, sizeof(api_key));
-    if (api_key_length == 0) {
-        printf("API 키를 환경 변수에서 가져올 수 없습니다.\n");
-        return;
-    }
-
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
 
@@ -106,10 +98,7 @@ __declspec(dllexport) void scan_file_with_virustotal(const char* file_hash) {
         snprintf(url, sizeof(url), "https://www.virustotal.com/api/v3/files/%s", file_hash);
 
         headers = curl_slist_append(headers, "accept: application/json");
-
-        char auth_header[150];
-        snprintf(auth_header, sizeof(auth_header), "x-apikey: %s", api_key);
-        headers = curl_slist_append(headers, auth_header);
+        headers = curl_slist_append(headers, "x-apikey: " API_KEY);
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
