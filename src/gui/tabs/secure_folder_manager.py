@@ -1,18 +1,34 @@
 import os
+import subprocess
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QApplication, QMessageBox
 from PyQt5.QtGui import QFont
-from .password_manager import PasswordManager
+from .password_manager import PasswordManager  # 기존 import 유지
 
 class SecureFolderManager:
     def __init__(self):
-        # 보안 폴더 경로를 고정된 경로로 설정
-        self.secure_folder_path = os.path.join(os.path.expanduser("~"), "SecureFolder")
+        # 보안 폴더 경로 설정
+        self.folder_name = "SystemUtilities"  # 폴더 이름 복원
+        self.secure_folder_path = os.path.join(
+            os.path.expanduser("~"),
+            "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", self.folder_name
+        )
         self.authenticated = False  # 인증 여부를 저장하는 변수
-        self.pwd_mgr = PasswordManager()
+        self.pwd_mgr = PasswordManager()  # PasswordManager 인스턴스 생성
 
         # 보안 폴더가 없으면 생성
         if not os.path.exists(self.secure_folder_path):
-            os.makedirs(self.secure_folder_path)
+            os.makedirs(self.secure_folder_path)  # 보안 폴더 생성
+            self._hide_folder(self.secure_folder_path)  # 폴더 숨김 처리
+            
+
+    def _hide_folder(self, folder_path):
+        # 폴더 숨김 처리
+        if os.name == 'nt':  # Windows 환경에서만 작동
+            try:
+                subprocess.run(['attrib', '+h', folder_path], check=True)
+                print(f"Folder '{folder_path}' is now hidden.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to hide folder: {e}")
 
     def authenticate(self):
         if not self.pwd_mgr.setup:

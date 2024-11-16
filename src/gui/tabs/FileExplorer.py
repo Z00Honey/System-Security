@@ -87,11 +87,19 @@ class Tab_FileExplorer(QWidget):
         secure_folder_path = os.path.normpath(self.secure_manager.secure_folder_path) if self.secure_manager else None
         current_path = os.path.normpath(path)
 
+        # 보안 폴더 접근 시 인증 요구
         if secure_folder_path and secure_folder_path in current_path:
             self.secure_manager.authenticate()
             if not self.secure_manager.authenticated:
                 return
 
+        # 보안 폴더에서 벗어날 경우 첫 화면으로 이동
+        if self.secure_manager and self.secure_manager.authenticated and secure_folder_path not in current_path:
+            self.secure_manager.authenticated = False
+            QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어납니다. 인증이 해제됩니다.")
+            path = QDir.homePath()  # 첫 화면 경로로 이동
+
+        # 경로 이동 처리
         source_index = self.model.index(path)
         proxy_index = self.proxy_model.mapFromSource(source_index)
         self.file_view.setRootIndex(proxy_index)
@@ -99,9 +107,6 @@ class Tab_FileExplorer(QWidget):
         self.add_to_history(path)
         self.update_tab_name(path)
 
-        if self.secure_manager and self.secure_manager.authenticated and secure_folder_path not in current_path:
-            self.secure_manager.authenticated = False
-            QMessageBox.information(self, "인증 해제", f"보안 폴더에서 벗어났습니다. 다시 접근하려면 인증이 필요합니다.")
 
     def navigate_to_address(self):
         path = self.address_bar.text()
