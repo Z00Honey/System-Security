@@ -1,36 +1,62 @@
-from PyQt5.QtWidgets import QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QScrollArea, QHeaderView
-from PyQt5.QtCore import Qt
-
-from utils.load import load_stylesheet
+# widgets/file_list.py
+from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout
+from PyQt5.QtCore import Qt, pyqtSignal
+from models.file_system_model import FileExplorerModel
+import os
 
 class FileList(QWidget):
+    path_changed = pyqtSignal(str)
+    
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.table = QTableWidget(self)
-        self.table.setRowCount(5)
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Name", "Date Modified", "Type", "Size"])
-
-        # 마지막 열이 부모 크기에 맞게 늘어나도록 설정
-        self.table.horizontalHeader().setStretchLastSection(True)
-
-        # 각 열의 너비를 설정하여 수평 스크롤이 생기지 않도록
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)  # 여백 없애기
-        self.layout.setSpacing(0)  # 아이템 간의 간격도 없애기
-
-        # QScrollArea를 사용하여 스크롤을 추가
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidget(self.table)
-        scroll_area.setWidgetResizable(True) 
-        scroll_area.setContentsMargins(0, 0, 0, 0) 
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 수평 스크롤 숨기기
-
-        self.layout.addWidget(scroll_area) 
-
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        
+        self.tree_view = QTreeView(self)
+        self.setup_ui()
+        self.setup_model()
+        
+        self.layout.addWidget(self.tree_view)
         self.setLayout(self.layout)
-        self.setStyleSheet(load_stylesheet("file_list.css"))
-        self.setObjectName("file_list")
+        
+    def setup_ui(self):
+        # 기본 UI 설정
+        self.tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.tree_view.setDragEnabled(True)
+        self.tree_view.setAcceptDrops(True)
+        self.tree_view.setDropIndicatorShown(True)
+        self.tree_view.setEditTriggers(QAbstractItemView.EditKeyPressed | QAbstractItemView.SelectedClicked)
+        
+        # 헤더 설정
+        header = self.tree_view.header()
+        header.setStretchLastSection(True)
+        header.setSectionsMovable(True)
+        
+        # 트리뷰 설정
+        self.tree_view.setRootIsDecorated(False)
+        self.tree_view.setItemsExpandable(False)
+        self.tree_view.setAlternatingRowColors(True)
+        
+    def setup_model(self):
+        self.model = FileExplorerModel()
+        self.tree_view.setModel(self.model)
+        
+        # 열 크기 설정
+        self.tree_view.setColumnWidth(0, 300)  # Name
+        self.tree_view.setColumnWidth(1, 150)  # Date Modified
+        self.tree_view.setColumnWidth(2, 100)  # Type
+        self.tree_view.setColumnWidth(3, 100)  # Size
+        
+        # 초기 경로 설정
+        initial_path = os.path.expanduser("~")
+        self.set_current_path(initial_path)
+        
+    def set_current_path(self, path):
+        if os.path.exists(path):
+            index = self.model.index(path)
+            self.tree_view.setRootIndex(index)
+            self.path_changed.emit(path)
+            
+    def get_current_path(self):
+        return self.model.filePath(self.tree_view.rootIndex())
