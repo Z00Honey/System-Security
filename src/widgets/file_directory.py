@@ -41,7 +41,7 @@ class FileDirectory(QWidget):
 
         button.setText(tooltip) 
         button.setIconSize(QSize(24, 24))
-        button.setStyleSheet("text-align: left;")
+        button.setStyleSheet("text-align: left; padding-left: 10px;")
         button.setFixedSize(180, 40)
 
         return button

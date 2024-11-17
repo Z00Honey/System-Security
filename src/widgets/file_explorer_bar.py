@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame 
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame
 from widgets.file_area import FileArea  
 from widgets.sidebar import Sidebar  
 
@@ -7,6 +7,8 @@ class FileExplorerBar(QWidget):
         super().__init__(parent)
 
         self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
         self.sidebar = Sidebar(self)
         self.layout.addWidget(self.sidebar)
@@ -22,5 +24,5 @@ class FileExplorerBar(QWidget):
         line_separator = QFrame(self)
         line_separator.setFrameShape(QFrame.VLine)
         line_separator.setFrameShadow(QFrame.Plain)
-        line_separator.setStyleSheet("color: black;")
+        line_separator.setStyleSheet("color: black; margin: 0; padding: 0;") 
         self.layout.addWidget(line_separator)

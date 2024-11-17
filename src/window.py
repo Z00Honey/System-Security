@@ -52,11 +52,11 @@ class MainWindow(QMainWindow):
         self.add_horizontal_separator()
 
         self.file_explorer_bar = FileExplorerBar(self)  # FileExplorerBar를 수평 레이아웃에 추가
-        self.layout.addWidget(self.file_explorer_bar)
-        
+        self.layout.addWidget(self.file_explorer_bar, 1)
+
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        self.layout.addStretch()
+        #self.layout.addStretch()
 
     def auto_position(self) -> tuple:
         display = get_monitors()[0]
