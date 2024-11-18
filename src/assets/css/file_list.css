@@ -1,0 +1,53 @@
+#file_list {
+    background-color: white; 
+    border: 1px solid #f8f2f2ea; 
+    border-radius: 5px; 
+}
+
+QTableWidget {
+    border: none; 
+    font-size: 14px; 
+    width: 100%; 
+    height: 100%; 
+}
+
+QTableWidget QTableCornerButton::section {
+    background-color: white;
+}
+
+QTableWidget::item {
+    padding-left: 10px; 
+    padding-right: 10px; 
+}
+
+QTableWidget::item:selected {
+    background-color: white; 
+}
+
+QHeaderView::section {
+    background-color: white;
+    border: 1px solid #f8f2f2f5;
+    padding: 5px;
+    text-align: left; 
+    font-weight: bold;
+}
+
+QTableWidget::horizontalHeader {
+    background-color: #f8f2f2ea;
+}
+
+QTableWidget::verticalHeader {
+    background-color: #f8f2f2ea; 
+}
+
+QTableWidget::item:hover {
+    background-color: #e6e6e6; 
+}
+
+QScrollArea {
+    border: none;
+}
+
+QScrollArea > QWidget {
+    background-color: none; 
+}

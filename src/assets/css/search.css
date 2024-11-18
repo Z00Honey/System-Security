@@ -1,0 +1,25 @@
+#search_bar {
+    font-size: 16px;
+    padding: 10px; 
+    background-color: #f0f0f0;
+    border-radius: 5px; 
+}
+
+QLabel {
+    margin-left: 10px; 
+}
+
+QPushButton {
+    border: none;
+    background: transparent;
+    padding: 5px;
+}
+
+QPushButton:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+QPushButton:pressed {
+    background-color: rgba(0, 0, 0, 0.2);
+}
