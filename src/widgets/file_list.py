@@ -20,6 +20,8 @@ class FileList(QWidget):
         self.layout.addWidget(self.tree_view)
         self.setLayout(self.layout)
         
+        self.tree_view.doubleClicked.connect(self.on_double_click)
+        
     def setup_ui(self):
         # 기본 UI 설정
         self.tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -52,11 +54,38 @@ class FileList(QWidget):
         initial_path = os.path.expanduser("~")
         self.set_current_path(initial_path)
         
+    def get_main_window(self):
+        parent = self.parent()
+        while parent is not None:
+            if type(parent).__name__ == 'MainWindow':
+                return parent
+            parent = parent.parent()
+        return None
+
+    def get_navigation_widget(self):
+        main_window = self.get_main_window()
+        if main_window and hasattr(main_window, 'address_bar'):
+            return main_window.address_bar.navigation_widget
+        return None
+        
     def set_current_path(self, path):
         if os.path.exists(path):
             index = self.model.index(path)
             self.tree_view.setRootIndex(index)
             self.path_changed.emit(path)
             
+            # 경로 표시줄 업데이트
+            main_window = self.get_main_window()
+            if main_window and hasattr(main_window, 'address_bar'):
+                main_window.address_bar.path_bar.update_path(path)
+                
     def get_current_path(self):
         return self.model.filePath(self.tree_view.rootIndex())
+        
+    def on_double_click(self, index):
+        path = self.model.filePath(index)
+        if os.path.isdir(path):
+            nav_widget = self.get_navigation_widget()
+            if nav_widget:
+                nav_widget.add_to_history(path)
+            self.set_current_path(path)
