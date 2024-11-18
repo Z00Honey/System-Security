@@ -1,6 +1,3 @@
-test.py
-
-
 # ELF
 *
 !*.*
@@ -277,6 +274,9 @@ $RECYCLE.BIN/
 *.msix
 *.msm
 *.msp
+
+# Environment variables
+.env
 
 # Windows shortcuts
 *.lnk
