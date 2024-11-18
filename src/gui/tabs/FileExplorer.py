@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QSortFilterProxyModel, QDir, Qt
 import os
 from .password_manager import PasswordManager
+from .ProcessAES import AESManager
 
 # <정렬 및 필터링을 위한 사용자 정의 모델 클래스>
 class SortFilterProxyModel(QSortFilterProxyModel):
@@ -26,6 +27,7 @@ class Tab_FileExplorer(QWidget):
         super().__init__(parent)
         self.secure_manager = secure_manager
         self.pwd=PasswordManager()
+        self.AES=AESManager()
         self.init_ui()
 
         # DLL 관련 객체 초기화
@@ -88,7 +90,7 @@ class Tab_FileExplorer(QWidget):
         current_path = os.path.normpath(path)
 
         # 보안 폴더 접근 시 인증 요구
-        if secure_folder_path and secure_folder_path in current_path:
+        if secure_folder_path and secure_folder_path in current_path and not self.secure_manager.authenticated:
             self.secure_manager.authenticate()
             if not self.secure_manager.authenticated:
                 return
@@ -96,6 +98,7 @@ class Tab_FileExplorer(QWidget):
         # 보안 폴더에서 벗어날 경우 첫 화면으로 이동
         if self.secure_manager and self.secure_manager.authenticated and secure_folder_path not in current_path:
             self.secure_manager.authenticated = False
+
             QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어납니다. 인증이 해제됩니다.")
             path = QDir.homePath()  # 첫 화면 경로로 이동
 
@@ -201,22 +204,38 @@ class Tab_FileExplorer(QWidget):
                 source_index = self.proxy_model.mapToSource(index)
                 file_path = self.model.filePath(source_index)
 
-                # 잠금 기능 추가
-                lock_action = menu.addAction("잠금")
+                # secure_action: 잠금 또는 해제 메뉴 추가 (authenticated 상태에 따라 변경)
+                if not self.secure_manager.authenticated:
+                    secure_action = menu.addAction("잠금")
+                else:
+                    secure_action = menu.addAction("해제")
+
+                # 추가 동작 메뉴
                 reset_action = menu.addAction("초기화")
 
+                # 사용자 선택 처리
                 action = menu.exec_(self.file_view.viewport().mapToGlobal(pos))
 
-                if action == lock_action and self.secure_manager:
-                    try:
-                        self.secure_manager.lock_item(self, file_path)
-                    except Exception as e:
-                        QMessageBox.critical(self, "Error", f"파일 잠금 중 오류가 발생했습니다: {str(e)}")
-                elif action == reset_action:
-                    self.pwd.reset()
+                if action:
+                    if action == secure_action:
+                        if not self.secure_manager.authenticated:
+                            # 잠금 수행
+                            try:
+                                self.secure_manager.lock(file_path)
+                            except Exception as e:
+                                QMessageBox.critical(self, "Error", f"파일 잠금 중 오류가 발생했습니다: {str(e)}")
+                        else:
+                            # 해제 수행
+                            try:
+                                self.secure_manager.unlock(file_path)
+                            except Exception as e:
+                                QMessageBox.critical(self, "Error", f"파일 해제 중 오류가 발생했습니다: {str(e)}")
+                    elif action == reset_action:
+                        self.pwd.reset()
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"컨텍스트 메뉴를 표시하는 동안 오류가 발생했습니다: {str(e)}")
+
 
     def create_new_folder(self, parent_path):
         if self.file_operations_dll:

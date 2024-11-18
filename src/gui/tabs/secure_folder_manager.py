@@ -1,8 +1,11 @@
 import os
 import subprocess
+import shutil
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QApplication, QMessageBox
 from PyQt5.QtGui import QFont
 from .password_manager import PasswordManager  # 기존 import 유지
+from .ProcessAES import AESManager
+from .Mapping import MappingManager
 
 class SecureFolderManager:
     def __init__(self):
@@ -14,6 +17,8 @@ class SecureFolderManager:
         )
         self.authenticated = False  # 인증 여부를 저장하는 변수
         self.pwd_mgr = PasswordManager()  # PasswordManager 인스턴스 생성
+        self.AES_mgr = AESManager()
+        self.mapping_mgr = MappingManager()
 
         # 보안 폴더가 없으면 생성
         if not os.path.exists(self.secure_folder_path):
@@ -29,7 +34,8 @@ class SecureFolderManager:
                 print(f"Folder '{folder_path}' is now hidden.")
             except subprocess.CalledProcessError as e:
                 print(f"Failed to hide folder: {e}")
-
+    
+    #################################################인증↓↓↓↓
     def authenticate(self):
         if not self.pwd_mgr.setup:
             self.pwd_mgr.set_initial_password()
@@ -134,4 +140,75 @@ class SecureFolderManager:
             dialog.accept()
         else:
             QMessageBox.warning(dialog, "인증 실패", "인증 코드가 일치하지 않습니다.")
+    #################################################인증↑↑↑↑
     
+    def lock(self, path):
+        """
+        파일 또는 폴더를 보안 폴더로 이동하고 암호화.
+        """
+        # AES 키 체크
+        if self.AES_mgr.pm.AESkey is None:
+            QMessageBox.warning(None, "경고", "AES 키가 설정되지 않았습니다.")
+            return
+
+        if not os.path.exists(path):
+            QMessageBox.warning(None, "경고", "경로가 존재하지 않습니다.")
+            return
+
+        try:
+            # ID 생성 및 메타데이터 저장
+            file_id = self.mapping_mgr.generate_id(path)
+            filename = os.path.basename(path)
+            secure_path = os.path.join(self.secure_folder_path, filename)
+
+            # 보안 폴더로 이동
+            shutil.move(path, secure_path)
+
+            # 암호화 수행
+            self.AES_mgr.encrypt(secure_path)
+
+            # 성공 메시지
+            QMessageBox.information(None, "성공", f"암호화 및 이동 성공:\n{path} -> 보안 폴더")
+        except Exception as e:
+            QMessageBox.critical(None, "오류", f"파일 암호화 또는 이동 중 오류 발생: {e}")
+
+    def unlock(self, path):
+        """
+        보안 폴더 내의 파일 또는 폴더를 원래 위치로 복원하고 복호화.
+        """
+        if not os.path.exists(path):
+            QMessageBox.warning(None, "경고", "경로가 존재하지 않습니다.")
+            return
+
+        # 파일 이름으로 ID 검색
+        filename = os.path.basename(path)
+        file_id = self.mapping_mgr.get_file_id(filename)
+
+        if file_id is None:
+            QMessageBox.warning(None, "경고", "해당 파일의 원래 경로를 찾을 수 없습니다.")
+            return
+
+        # 원래 경로 검색
+        original_path = self.mapping_mgr.get_original_path(file_id)
+        if original_path is None:
+            QMessageBox.warning(None, "경고", "원래 경로를 찾을 수 없습니다.")
+            return
+
+        try:
+            # 보안 폴더에서 원래 위치로 이동
+            shutil.move(path, original_path)
+
+            # 복호화 수행
+            self.AES_mgr.decrypt(original_path)
+
+            # 매핑 정보 삭제
+            self.mapping_mgr.delete_mapping(file_id)
+
+            # 성공 메시지
+            QMessageBox.information(None, "성공", f"복호화 및 이동 성공:\n보안 폴더 -> {original_path}")
+        except Exception as e:
+            QMessageBox.critical(None, "오류", f"파일 복호화 또는 이동 중 오류 발생: {e}")
+
+
+
+            

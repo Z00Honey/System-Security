@@ -9,6 +9,7 @@ import ctypes
 from ctypes import c_char_p, POINTER, c_ubyte, c_int
 import os
 import json
+import stat
 
 
 class PasswordManager:
@@ -29,11 +30,13 @@ class PasswordManager:
         self.password_hash = None
         self.salt = None
         self.email = None
+        self.AESkey = None
         self.correct_verification_code = None
         self.timer = None
         self.remaining_time = 0
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
+        #################################################DLL설정↓↓↓↓
         # DLL 로드 및 해시 함수 정의 (세 개의 인자 받도록 수정)
         current_directory = os.path.dirname(__file__)
         dll_path = os.path.join(current_directory, 'hashing.dll')
@@ -52,6 +55,8 @@ class PasswordManager:
         self.salthide.decrypt_message.restype = c_int
 
         self.load_config()
+        self.load_key()
+    #################################################dll설정↑↑↑↑
 
     #################################################초기설정↓↓↓↓
     def set_initial_password(self, parent=None):
@@ -223,6 +228,7 @@ class PasswordManager:
         self.setup = True
         self.save_config()  # 설정 저장
         self.load_config() 
+        self.load_key()
         #QMessageBox.information(dialog, "비번:"+self.password_hash)
 
 
@@ -337,6 +343,7 @@ class PasswordManager:
         }
         with open(self.config_file, "w") as file:
             json.dump(config, file)
+        os.chmod(self.config_file, stat.S_IREAD)
 
     def authenticate_user(self, password):
         """입력한 비밀번호가 저장된 해시와 일치하는지 확인"""
@@ -381,3 +388,18 @@ class PasswordManager:
 
     #################################################RESET↑↑↑↑
 
+    def load_key(self):
+        # password_hash가 None인 경우 바로 종료
+        if self.password_hash is None:
+            self.AESkey = None
+            return  # 함수 종료
+
+        try:
+            # AES 키 생성
+            hashed_key = (ctypes.c_ubyte * 32)()  # 32바이트 크기의 해시 생성
+            self.hasher.hash_password(self.password_hash, self.salt, hashed_key)
+            self.AESkey = bytes(hashed_key)
+        except Exception as e:
+            # 키 생성 실패 시 에러 메시지 표시
+            self.AESkey = None
+            QMessageBox.critical(None, "Error", f"AES 키 생성에 실패했습니다: {e}")
