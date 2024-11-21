@@ -6,6 +6,7 @@ from PyQt5.QtGui import QFont
 from .password_manager import PasswordManager  # 기존 import 유지
 from .ProcessAES import AESManager
 from .Mapping import MappingManager
+from .Thread import TaskRunner
 
 class SecureFolderManager:
     def __init__(self):
@@ -189,7 +190,7 @@ class SecureFolderManager:
         self.mapping_mgr.save_mapping()
 
         # 암호화 수행
-        self.AES_mgr.encrypt(file_path)
+        TaskRunner.run(self.AES_mgr.encrypt,file_path)
 
     def unlock(self, path):
         # 보안 폴더 내의 파일 또는 폴더를 원래 위치로 복원하고 복호화
@@ -235,7 +236,7 @@ class SecureFolderManager:
 
         # 파일 이동 및 복호화
         shutil.move(file_path, original_path)
-        self.AES_mgr.decrypt(original_path)  # 복호화 수행
+        TaskRunner.run(self.AES_mgr.decrypt,original_path)  # 복호화 수행
 
         # 매핑 정보 삭제
         self.mapping_mgr.delete_mapping(file_id)
