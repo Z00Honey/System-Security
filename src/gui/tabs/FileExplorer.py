@@ -14,6 +14,7 @@ from PyQt5.QtCore import QSortFilterProxyModel, QDir, Qt
 import os
 from .password_manager import PasswordManager
 from .ProcessAES import AESManager
+from .Thread import TaskRunner
 
 # <정렬 및 필터링을 위한 사용자 정의 모델 클래스>
 class SortFilterProxyModel(QSortFilterProxyModel):
@@ -219,19 +220,30 @@ class Tab_FileExplorer(QWidget):
                 if action:
                     if action == secure_action:
                         if not self.secure_manager.authenticated:
-                            # 잠금 수행
-                            try:
-                                self.secure_manager.lock(file_path)
-                            except Exception as e:
-                                QMessageBox.critical(self, "Error", f"파일 잠금 중 오류가 발생했습니다: {str(e)}")
+                            # 잠금 메시지창
+                            reply = QMessageBox.question(self, "잠금", "해당 폴더(파일)를 잠금 처리 하시겠습니까?",
+                                                        QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
+                            if reply == QMessageBox.Yes:
+                                try:
+                                    TaskRunner.run(self.secure_manager.lock, file_path)
+                                    QMessageBox.information(self, "잠금 완료", "폴더(파일)가 성공적으로 잠금 처리되었습니다.")
+                                except Exception as e:
+                                    QMessageBox.critical(self, "Error", f"잠금 중 오류 발생: {str(e)}")
                         else:
-                            # 해제 수행
-                            try:
-                                self.secure_manager.unlock(file_path)
-                            except Exception as e:
-                                QMessageBox.critical(self, "Error", f"파일 해제 중 오류가 발생했습니다: {str(e)}")
+                            # 해제 메시지창
+                            reply = QMessageBox.question(self, "해제", "해당 폴더(파일)를 잠금 해제 하시겠습니까?",
+                                                        QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
+                            if reply == QMessageBox.Yes:
+                                try:
+                                    TaskRunner.run(self.secure_manager.unlock, file_path)
+                                    QMessageBox.information(self, "해제 완료", "폴더(파일)가 성공적으로 잠금 해제되었습니다.")
+                                except Exception as e:
+                                    QMessageBox.critical(self, "Error", f"해제 중 오류 발생: {str(e)}")
+
                     elif action == reset_action:
+                        # 비밀번호 초기화 작업
                         self.pwd.reset()
+
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"컨텍스트 메뉴를 표시하는 동안 오류가 발생했습니다: {str(e)}")

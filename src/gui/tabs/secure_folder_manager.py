@@ -146,12 +146,10 @@ class SecureFolderManager:
     def lock(self, path):
         # 파일 또는 폴더를 보안 폴더로 이동하고 암호화
         if self.AES_mgr.pm.AESkey is None:
-            QMessageBox.warning(None, "경고", "AES 키가 설정되지 않았습니다.")
-            return
+            raise Exception("AES 키가 설정되지 않았습니다.")
 
         if not os.path.exists(path):
-            QMessageBox.warning(None, "경고", "경로가 존재하지 않습니다.")
-            return
+            raise Exception("경로가 존재하지 않습니다.")
 
         try:
             if os.path.isdir(path):  # 폴더 처리
@@ -168,8 +166,6 @@ class SecureFolderManager:
                         original_path = os.path.join(path, os.path.relpath(file_path, secure_folder))
                         self._lock_file(file_path, original_path)
 
-                QMessageBox.information(None, "성공", f"해당 파일/폴더를 잠금합니다.")
-
             else:  # 단일 파일 처리
                 # 단일 파일 이동
                 filename = os.path.basename(path)
@@ -181,7 +177,7 @@ class SecureFolderManager:
                 self._lock_file(secure_path, path)
 
         except Exception as e:
-            QMessageBox.critical(None, "오류", f"파일 암호화 또는 이동 중 오류 발생: {e}")
+            raise Exception(f"파일 암호화 또는 이동 중 오류 발생: {str(e)}")
 
     def _lock_file(self, file_path, original_path):
         # 단일 파일을 보안 폴더로 이동하고 암호화
@@ -190,13 +186,12 @@ class SecureFolderManager:
         self.mapping_mgr.save_mapping()
 
         # 암호화 수행
-        TaskRunner.run(self.AES_mgr.encrypt,file_path)
+        self.AES_mgr.encrypt(file_path)
 
     def unlock(self, path):
         # 보안 폴더 내의 파일 또는 폴더를 원래 위치로 복원하고 복호화
         if not os.path.exists(path):
-            QMessageBox.warning(None, "경고", "경로가 존재하지 않습니다.")
-            return
+            raise Exception("경로가 존재하지 않습니다.")
 
         try:
             if os.path.isdir(path):  # 폴더 처리
@@ -211,9 +206,8 @@ class SecureFolderManager:
             else:  # 단일 파일 처리
                 self._unlock_file(path)
 
-            QMessageBox.information(None, "성공", f"해당 파일/폴더를 해제합니다")
         except Exception as e:
-            QMessageBox.critical(None, "오류", f"파일 복호화 또는 이동 중 오류 발생: {e}")
+            raise Exception(f"파일 복호화 또는 이동 중 오류 발생: {str(e)}")
 
     def _unlock_file(self, file_path):
         # 단일 파일을 원래 위치로 복원하고 복호화
@@ -221,13 +215,11 @@ class SecureFolderManager:
         file_id = self.mapping_mgr.get_file_id(filename)
 
         if file_id is None:
-            QMessageBox.warning(None, "경고", "해당 파일의 원래 경로를 찾을 수 없습니다.")
-            return
+            raise Exception("해당 파일의 원래 경로를 찾을 수 없습니다.")
 
         original_path = self.mapping_mgr.get_original_path(file_id)  # 원래 경로 검색
         if original_path is None:
-            QMessageBox.warning(None, "경고", "원래 경로를 찾을 수 없습니다.")
-            return
+            raise Exception("원래 경로를 찾을 수 없습니다.")
 
         # 폴더 경로가 없으면 재생성
         original_folder = os.path.dirname(original_path)
@@ -236,10 +228,9 @@ class SecureFolderManager:
 
         # 파일 이동 및 복호화
         shutil.move(file_path, original_path)
-        TaskRunner.run(self.AES_mgr.decrypt,original_path)  # 복호화 수행
+        self.AES_mgr.decrypt(original_path)  # 복호화 수행
 
         # 매핑 정보 삭제
         self.mapping_mgr.delete_mapping(file_id)
         self.mapping_mgr.save_mapping()
 
-      
