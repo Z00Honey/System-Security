@@ -219,10 +219,17 @@ class Tab_FileExplorer(QWidget):
 
                 if action:
                     if action == secure_action:
+                        # AES 키가 설정되었는지 먼저 확인
+                        if self.pwd.AESkey is None:  # None으로 체크
+                            QMessageBox.warning(self, "Error", "AES 키가 설정되지 않았습니다.")
+                            return  # 키가 없으면 더 이상 실행하지 않음
+
                         if not self.secure_manager.authenticated:
                             # 잠금 메시지창
-                            reply = QMessageBox.question(self, "잠금", "해당 폴더(파일)를 잠금 처리 하시겠습니까?",
-                                                        QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
+                            reply = QMessageBox.question(
+                                self, "잠금", "해당 폴더(파일)를 잠금 처리 하시겠습니까?",
+                                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+                            )
                             if reply == QMessageBox.Yes:
                                 try:
                                     TaskRunner.run(self.secure_manager.lock, file_path)
@@ -231,8 +238,10 @@ class Tab_FileExplorer(QWidget):
                                     QMessageBox.critical(self, "Error", f"잠금 중 오류 발생: {str(e)}")
                         else:
                             # 해제 메시지창
-                            reply = QMessageBox.question(self, "해제", "해당 폴더(파일)를 잠금 해제 하시겠습니까?",
-                                                        QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
+                            reply = QMessageBox.question(
+                                self, "해제", "해당 폴더(파일)를 잠금 해제 하시겠습니까?",
+                                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+                            )
                             if reply == QMessageBox.Yes:
                                 try:
                                     TaskRunner.run(self.secure_manager.unlock, file_path)

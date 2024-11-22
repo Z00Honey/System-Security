@@ -145,8 +145,6 @@ class SecureFolderManager:
     
     def lock(self, path):
         # 파일 또는 폴더를 보안 폴더로 이동하고 암호화
-        if self.AES_mgr.pm.AESkey is None:
-            raise Exception("AES 키가 설정되지 않았습니다.")
 
         if not os.path.exists(path):
             raise Exception("경로가 존재하지 않습니다.")
