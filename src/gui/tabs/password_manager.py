@@ -1,4 +1,8 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,QProgressDialog, QMessageBox, QApplication
+from PyQt5.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, 
+    QLabel, QLineEdit, QPushButton,
+    QProgressDialog, QMessageBox, QApplication,
+    QCheckBox, QDialogButtonBox)
 from PyQt5.QtCore import Qt, QTimer
 import re
 import sys
@@ -10,6 +14,7 @@ from ctypes import c_char_p, POINTER, c_ubyte, c_int
 import os
 import json
 import stat
+from .Thread import TaskRunner
 
 
 class PasswordManager:
@@ -35,6 +40,10 @@ class PasswordManager:
         self.timer = None
         self.remaining_time = 0
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        self.secure_folder_path = os.path.join(
+            os.path.expanduser("~"),
+            "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "SystemUtilities"
+        )
 
         #################################################DLL설정↓↓↓↓
         # DLL 로드 및 해시 함수 정의 (세 개의 인자 받도록 수정)
@@ -229,6 +238,7 @@ class PasswordManager:
         self.save_config()  # 설정 저장
         self.load_config() 
         self.load_key()
+        TaskRunner.run(self.fast_encrypt_folder,self.secure_folder_path)
         #QMessageBox.information(dialog, "비번:"+self.password_hash)
 
 
@@ -359,12 +369,53 @@ class PasswordManager:
 
     #################################################RESET↓↓↓↓
     def reset(self, parent=None):
-        reply = QMessageBox.warning(parent, "초기화 확인", 
-                                    "설정을 초기화하시겠습니까? 이 작업은 모든 저장된 데이터를 삭제합니다.", 
-                                    QMessageBox.Yes | QMessageBox.No)
+    # 커스텀 대화창
+        dialog = QDialog(parent)
+        dialog.setWindowTitle("비밀번호 초기화 - 주의사항")
 
-        if reply == QMessageBox.Yes:
+        # 주의사항 메시지
+        message = (
+    "<p style='font-size:16px;'>설정을 초기화하시겠습니까?</p>"
+    "<p style='color:red; font-weight:bold; font-size:20px; text-align:center;'>※ 주의사항 ※</p>"
+    "<ul style='font-size:16px; color:black; line-height:1.5;'>"
+    "<li>초기화 과정에서 암호키가 삭제되므로 보안폴더 내 모든 파일이 복호화됩니다.</li>"
+    "<li>복호화된 파일은 외부에 노출될 가능성이 있습니다.</li>"
+    "<li>파일 수에 따라 복호화 시간이 길어질 수 있습니다.</li>"
+    "</ul>"
+    "<p style='font-size:16px; color:black;'>"
+    "초기화 후 보안을 유지하려면 반드시 새로운 비밀번호를 설정해 주세요."
+    "</p>"
+)
+
+
+        label = QLabel(message)
+        label.setWordWrap(True)
+
+        # 체크박스
+        checkbox = QCheckBox("주의사항을 읽었으며 이해했습니다.")
+        checkbox.setChecked(False)
+
+        # 버튼
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        ok_button = buttons.button(QDialogButtonBox.Ok)
+        ok_button.setEnabled(False)  # 초기에는 확인 버튼 비활성화
+        buttons.rejected.connect(dialog.reject)
+        buttons.accepted.connect(dialog.accept)
+
+        # 체크박스 상태에 따라 확인 버튼 활성화/비활성화
+        checkbox.stateChanged.connect(lambda state: ok_button.setEnabled(state == Qt.Checked))
+
+        # 레이아웃 설정
+        layout = QVBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(checkbox)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+
+        # 대화창 실행
+        if dialog.exec_() == QDialog.Accepted:
             try:
+                TaskRunner.run(self.fast_decrypt_folder,self.secure_folder_path)
                 # 설정 파일 삭제
                 if os.path.exists(self.config_file):
                     os.remove(self.config_file)
@@ -403,3 +454,28 @@ class PasswordManager:
             # 키 생성 실패 시 에러 메시지 표시
             self.AESkey = None
             QMessageBox.critical(None, "Error", f"AES 키 생성에 실패했습니다: {e}")
+
+    
+    def fast_encrypt_folder(self, path):
+        
+        #AESManager의 fast_encrypt_folder 메서드를 호출하여 폴더를 암호화합니다.
+        
+        if self.AESkey is None:
+            raise ValueError("AES 키가 설정되지 않았습니다. 초기화를 먼저 수행하세요.")
+
+        # AESManager를 동적으로 임포트하고 생성
+        from .ProcessAES import AESManager
+        aes_manager = AESManager()
+        aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
+        aes_manager.fast_encrypt_folder(path)
+
+    def fast_decrypt_folder(self, path):
+        #AESManager의 fast_decrypt_folder 메서드를 호출하여 폴더를 복호화합니다.
+        if self.AESkey is None:
+            raise ValueError("AES 키가 설정되지 않았습니다. 초기화를 먼저 수행하세요.")
+
+        # AESManager를 동적으로 임포트하고 생성
+        from .ProcessAES import AESManager
+        aes_manager = AESManager()
+        aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
+        aes_manager.fast_decrypt_folder(path)

@@ -7,7 +7,7 @@ class AESManager:
     def __init__(self):
         # AES DLL 로드
         current_directory = os.path.dirname(__file__)
-        aes_dll_path = os.path.join(current_directory, 'aes.dll')
+        aes_dll_path = os.path.join(current_directory, 'Faes.dll')
         self.AES = ctypes.CDLL(aes_dll_path)
 
         self.AES.aes_cbc_encrypt.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte)]
@@ -15,6 +15,12 @@ class AESManager:
 
         self.AES.aes_cbc_decrypt.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte)]
         self.AES.aes_cbc_decrypt.restype = ctypes.c_int
+
+        self.AES.fast_encrypt_folder.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_ubyte)]
+        self.AES.fast_encrypt_folder.restype = ctypes.c_int
+
+        self.AES.fast_decrypt_folder.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_ubyte)]
+        self.AES.fast_decrypt_folder.restype = ctypes.c_int
 
         # PasswordManager 객체 생성 및 자동 설정 로드
         self.pm = PasswordManager()  # 객체 이름을 짧게 변경
@@ -120,3 +126,25 @@ class AESManager:
                 QMessageBox.warning(None, "경고", f"유효하지 않은 경로입니다: {path}")
         except Exception as e:
             QMessageBox.critical(None, "복호화 오류", f"복호화 작업 중 오류 발생: {e}")
+
+     # Fast encryption using the DLL
+    def fast_encrypt_folder(self, path):
+        if not os.path.isdir(path):
+            raise ValueError("유효한 폴더 경로가 아닙니다.")
+        if self.pm.AESkey is None:
+            raise ValueError("AES 키가 설정되지 않았습니다.")
+        key_c = (ctypes.c_ubyte * len(self.pm.AESkey)).from_buffer_copy(self.pm.AESkey)
+        result = self.AES.fast_encrypt_folder(path.encode('utf-8'), key_c)
+        if result != 0:
+            raise RuntimeError("Fast encryption failed")
+
+    # Fast decryption using the DLL
+    def fast_decrypt_folder(self, path):
+        if not os.path.isdir(path):
+            raise ValueError("유효한 폴더 경로가 아닙니다.")
+        if self.pm.AESkey is None:
+            raise ValueError("AES 키가 설정되지 않았습니다.")
+        key_c = (ctypes.c_ubyte * len(self.pm.AESkey)).from_buffer_copy(self.pm.AESkey)
+        result = self.AES.fast_decrypt_folder(path.encode('utf-8'), key_c)
+        if result != 0:
+            raise RuntimeError("Fast decryption failed")
