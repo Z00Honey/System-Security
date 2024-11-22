@@ -353,7 +353,6 @@ class PasswordManager:
         }
         with open(self.config_file, "w") as file:
             json.dump(config, file)
-        os.chmod(self.config_file, stat.S_IREAD)
 
     def authenticate_user(self, password):
         """입력한 비밀번호가 저장된 해시와 일치하는지 확인"""
