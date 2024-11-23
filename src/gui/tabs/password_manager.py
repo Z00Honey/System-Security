@@ -238,7 +238,7 @@ class PasswordManager:
         self.save_config()  # 설정 저장
         self.load_config() 
         self.load_key()
-        TaskRunner.run(self.fast_encrypt_folder,self.secure_folder_path)
+        TaskRunner.run(self.encrypt,self.secure_folder_path)
         #QMessageBox.information(dialog, "비번:"+self.password_hash)
 
 
@@ -379,7 +379,8 @@ class PasswordManager:
     "<ul style='font-size:16px; color:black; line-height:1.5;'>"
     "<li>초기화 과정에서 암호키가 삭제되므로 보안폴더 내 모든 파일이 복호화됩니다.</li>"
     "<li>복호화된 파일은 외부에 노출될 가능성이 있습니다.</li>"
-    "<li>파일 수에 따라 복호화 시간이 길어질 수 있습니다.</li>"
+    "<li>파일 수가 많을수록 복호화 시간이 길어질 수 있고 오작동 날수있습니다.</li>"
+    "<li><b><i>파일을 해제하고 초기화하는것을 추전합니다.(파일깨져도 책임안짐)</li>"
     "</ul>"
     "<p style='font-size:16px; color:black;'>"
     "초기화 후 보안을 유지하려면 반드시 새로운 비밀번호를 설정해 주세요."
@@ -414,7 +415,7 @@ class PasswordManager:
         # 대화창 실행
         if dialog.exec_() == QDialog.Accepted:
             try:
-                TaskRunner.run(self.fast_decrypt_folder,self.secure_folder_path)
+                TaskRunner.run(self.decrypt,self.secure_folder_path)
                 # 설정 파일 삭제
                 if os.path.exists(self.config_file):
                     os.remove(self.config_file)
@@ -455,7 +456,7 @@ class PasswordManager:
             QMessageBox.critical(None, "Error", f"AES 키 생성에 실패했습니다: {e}")
 
     
-    def fast_encrypt_folder(self, path):
+    def encrypt(self, path):
         
         #AESManager의 fast_encrypt_folder 메서드를 호출하여 폴더를 암호화합니다.
         
@@ -466,9 +467,9 @@ class PasswordManager:
         from .ProcessAES import AESManager
         aes_manager = AESManager()
         aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
-        aes_manager.fast_encrypt_folder(path)
+        aes_manager.encrypt(path)
 
-    def fast_decrypt_folder(self, path):
+    def decrypt(self, path):
         #AESManager의 fast_decrypt_folder 메서드를 호출하여 폴더를 복호화합니다.
         if self.AESkey is None:
             raise ValueError("AES 키가 설정되지 않았습니다. 초기화를 먼저 수행하세요.")
@@ -477,4 +478,4 @@ class PasswordManager:
         from .ProcessAES import AESManager
         aes_manager = AESManager()
         aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
-        aes_manager.fast_decrypt_folder(path)
+        aes_manager.decrypt(path)
