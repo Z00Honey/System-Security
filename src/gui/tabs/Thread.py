@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QProgressDialog, QLabel, QMessageBox
+from PyQt5.QtWidgets import QApplication, QProgressDialog, QMessageBox
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, Qt
 import sys
 
@@ -29,16 +29,16 @@ class TaskRunner:
         """작업을 비동기로 실행하고 모달 프로그레스 창을 표시."""
         app = QApplication.instance() or QApplication(sys.argv)
 
-        # 대기창 설정 (수우우우우정)
-        progress_dialog = QProgressDialog(parent)  # 부모 창을 명시적으로 전달
+        # 대기창 설정
+        progress_dialog = QProgressDialog(parent)
         progress_dialog.setWindowTitle("작업 중")
         progress_dialog.setLabelText("작업을 처리하고 있습니다...")
         progress_dialog.setCancelButton(None)  # 취소 버튼 숨기기
-        progress_dialog.setWindowModality(Qt.ApplicationModal if parent is None else Qt.WindowModal)  # 부모가 있을 경우 WindowModal (수우우우우정)
-        progress_dialog.setRange(0, 0)  # 진행률 비활성화
-        progress_dialog.setAutoClose(False)  # 자동 닫기 비활성화 (수우우우우정)
+        progress_dialog.setWindowModality(Qt.ApplicationModal if parent is None else Qt.WindowModal)
+        progress_dialog.setRange(0, 0)
+        progress_dialog.setAutoClose(False)
 
-        # 애니메이션 설정 (수우우우우정)
+        # 애니메이션 설정
         dots = ["", ".", "..", "..."]
         current_dot_index = 0
 
@@ -46,8 +46,9 @@ class TaskRunner:
             nonlocal current_dot_index
             progress_dialog.setLabelText(f"작업을 처리하고 있습니다{dots[current_dot_index]}")
             current_dot_index = (current_dot_index + 1) % len(dots)
+            QApplication.processEvents()  # UI 업데이트 강제 실행
 
-        # 타이머 설정 (수우우우우정)
+        # 타이머 설정
         timer = QTimer()
         timer.timeout.connect(update_label)
         timer.start(500)
@@ -55,18 +56,21 @@ class TaskRunner:
         # 작업 스레드 실행
         thread = TaskRunner.TaskThread(task, *args, **kwargs)
 
-        # 작업 완료 처리 (수우우우우정)
+        # 작업 완료 처리
         thread.finished.connect(lambda: timer.stop())  # 타이머 중지
-        thread.finished.connect(progress_dialog.close)  # 대기창 닫기
+        thread.finished.connect(progress_dialog.accept)  # 대기창 닫기
 
-        # 오류 처리 (수우우우우정)
+        # 오류 처리
         thread.error.connect(lambda err: QMessageBox.critical(parent, "오류", f"작업 중 오류 발생: {err}"))
         thread.error.connect(lambda: timer.stop())  # 타이머 중지
-        thread.error.connect(progress_dialog.close)  # 대기창 닫기
+        thread.error.connect(progress_dialog.reject)  # 대기창 닫기
 
         # 스레드 시작
         thread.start()
-        progress_dialog.exec_()  # 모달 대기창 실행
 
-        # 스레드 대기 (수우우우우정)
+        # 모달 대기창 실행
+        progress_dialog.exec_()
+
+        # 스레드 대기
         thread.wait()
+        thread.deleteLater()
