@@ -1,4 +1,6 @@
 // vrsapi.c
+// Build Command:
+// cl /LD vrsapi1.c /I"C:\Program Files\OpenSSL-Win64\include" /I"C:\curl-8.10.1_7-win64-mingw\include" /MT /link /LIBPATH:"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MD" /LIBPATH:"C:\curl-8.10.1_7-win64-mingw\lib" libcrypto.lib libssl.lib libcurl.lib wininet.lib /out:vrsapi1.dll
 
 #ifdef _WIN32
     #include <windows.h>
@@ -42,13 +44,19 @@ static BOOL calculate_file_hash(const char* file_path, char* hash_result, size_t
     FILE* file = NULL;
 #ifdef _WIN32
     wchar_t wfile_path[MAX_PATH];
-    MultiByteToWideChar(CP_UTF8, 0, file_path, -1, wfile_path, MAX_PATH);
+    int conversion_result = MultiByteToWideChar(CP_UTF8, 0, file_path, -1, wfile_path, MAX_PATH);
+    if (conversion_result == 0) {
+        printf("[DEBUG] Failed to convert file path to wide char: %s\n", file_path);
+        EVP_MD_CTX_free(ctx);
+        return FALSE;
+    }
     file = _wfopen(wfile_path, L"rb");
 #else
     file = fopen(file_path, "rb");
 #endif
 
     if (!file) {
+        printf("[DEBUG] Failed to open file: %s\n", file_path);
         EVP_MD_CTX_free(ctx);
         return FALSE;
     }
@@ -70,6 +78,7 @@ static BOOL calculate_file_hash(const char* file_path, char* hash_result, size_t
     
     fclose(file);
     EVP_MD_CTX_free(ctx);
+    printf("[DEBUG] Calculated file hash: %s\n", hash_result);
     return TRUE;
 }
 
@@ -83,55 +92,56 @@ static BOOL make_api_request(const char* file_hash, char* result, size_t result_
     char path[256] = {0};
     
     // API 키 가져오기
-    if (GetEnvironmentVariable(ENV_VAR_KEY, api_key, sizeof(api_key)) == 0) {
-        snprintf(result, result_size, "API 키를 찾을 수 없습니다");
+    DWORD api_key_len = GetEnvironmentVariable(ENV_VAR_KEY, api_key, sizeof(api_key));
+    if (api_key_len == 0) {
+        DWORD error_code = GetLastError();
+        snprintf(result, result_size, "API 키를 찾을 수 없습니다. Error Code: %lu", error_code);
+        printf("[DEBUG] Failed to get API key. Error Code: %lu\n", error_code);
         return FALSE;
     }
 
+    printf("[DEBUG] API Key: %s\n", api_key);
+
     // API 경로 생성
     snprintf(path, sizeof(path), API_PATH, file_hash);
+    printf("[DEBUG] API Path: %s\n", path);
 
-    hInternet = InternetOpen("vrsapi/1.0", 
-                            INTERNET_OPEN_TYPE_DIRECT,
-                            NULL, NULL, 0);
+    hInternet = InternetOpen("vrsapi/1.0", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
     if (!hInternet) {
         snprintf(result, result_size, "인터넷 연결 초기화 실패");
-        goto cleanup;
+        printf("[DEBUG] Internet connection initialization failed.\n");
+        return FALSE;
     }
 
-    hConnect = InternetConnect(hInternet,
-                             API_HOST,
-                             INTERNET_DEFAULT_HTTPS_PORT,
-                             NULL, NULL,
-                             INTERNET_SERVICE_HTTP,
-                             0, 0);
+    hConnect = InternetConnect(hInternet, API_HOST, INTERNET_DEFAULT_HTTPS_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
     if (!hConnect) {
         snprintf(result, result_size, "서버 연결 실패");
-        goto cleanup;
+        printf("[DEBUG] Server connection failed.\n");
+        InternetCloseHandle(hInternet);
+        return FALSE;
     }
 
-    hRequest = HttpOpenRequest(hConnect,
-                             "GET",
-                             path,
-                             NULL,
-                             NULL,
-                             NULL,
-                             INTERNET_FLAG_SECURE,
-                             0);
+    hRequest = HttpOpenRequest(hConnect, "GET", path, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
     if (!hRequest) {
         snprintf(result, result_size, "HTTP 요청 생성 실패");
-        goto cleanup;
+        printf("[DEBUG] HTTP request creation failed.\n");
+        InternetCloseHandle(hConnect);
+        InternetCloseHandle(hInternet);
+        return FALSE;
     }
 
     // 헤더 추가
     char headers[256];
-    snprintf(headers, sizeof(headers), 
-             "accept: application/json\r\nx-apikey: %s\r\n", 
-             api_key);
+    snprintf(headers, sizeof(headers), "accept: application/json\r\nx-apikey: %s\r\n", api_key);
+    printf("[DEBUG] HTTP Headers: %s\n", headers);
 
     if (!HttpSendRequest(hRequest, headers, strlen(headers), NULL, 0)) {
         snprintf(result, result_size, "HTTP 요청 전송 실패");
-        goto cleanup;
+        printf("[DEBUG] HTTP request sending failed.\n");
+        InternetCloseHandle(hRequest);
+        InternetCloseHandle(hConnect);
+        InternetCloseHandle(hInternet);
+        return FALSE;
     }
 
     // 응답 읽기
@@ -146,12 +156,12 @@ static BOOL make_api_request(const char* file_hash, char* result, size_t result_
         total_read += bytes_read;
     }
     result[total_read] = '\0';
+    printf("[DEBUG] HTTP Response: %s\n", result);
     success = TRUE;
 
-cleanup:
-    if (hRequest) InternetCloseHandle(hRequest);
-    if (hConnect) InternetCloseHandle(hConnect);
-    if (hInternet) InternetCloseHandle(hInternet);
+    InternetCloseHandle(hRequest);
+    InternetCloseHandle(hConnect);
+    InternetCloseHandle(hInternet);
     return success;
 }
 
@@ -165,7 +175,7 @@ DLL_EXPORT BOOL scan_file_virustotal(const char* file_path, char* result, size_t
         return FALSE;
     }
 
-    // API 요청 수행
+    // API 요청
     if (!make_api_request(hash, result, result_size)) {
         return FALSE;
     }
@@ -185,6 +195,7 @@ DLL_EXPORT BOOL scan_folder_virustotal(const char* folder_path, char* result, si
     HANDLE hFind = FindFirstFile(search_path, &findFileData);
     if (hFind == INVALID_HANDLE_VALUE) {
         snprintf(result, result_size, "폴더를 열 수 없습니다");
+        printf("[DEBUG] Folder cannot be opened: %s\n", folder_path);
         return FALSE;
     }
 
@@ -194,6 +205,7 @@ DLL_EXPORT BOOL scan_folder_virustotal(const char* folder_path, char* result, si
             char scan_result[RESULT_BUFFER_SIZE];
             
             snprintf(file_path, MAX_PATH, "%s\\%s", folder_path, findFileData.cFileName);
+            printf("[DEBUG] Scanning file: %s\n", file_path);
             
             if (scan_file_virustotal(file_path, scan_result, sizeof(scan_result))) {
                 result_offset += snprintf(full_result + result_offset, 

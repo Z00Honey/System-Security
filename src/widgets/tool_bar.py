@@ -2,14 +2,19 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QSizePolicy, QMen
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
-from ctypes import cdll, c_char_p, create_string_buffer
+from ctypes import cdll, c_char_p, create_string_buffer, c_bool, c_size_t
 from utils.analysis import analyze_file
+from dotenv import load_dotenv
 import os
+import json
 
 
 class ToolBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        # Load environment variables from .env file
+        load_dotenv()
         
         self.setObjectName("tool_bar")
         self.layout = QHBoxLayout()
@@ -101,38 +106,84 @@ class ToolBar(QWidget):
         if main_window.file_list.model.isDir(current_index):
             QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
             return
-        
+
+        # 파일 이름 추출
+        selected_file_name = os.path.basename(file_path)
+
         # 확인 메시지 표시
-        reply = QMessageBox.question(self, 
-                                   '바이러스 검사', 
-                                   f'선택한 파일을 VirusTotal로 검사하시겠습니까?\n\n파일: {file_path}',
-                                   QMessageBox.Yes | QMessageBox.No, 
-                                   QMessageBox.No)
+        reply = QMessageBox.question(
+            self, 
+            '바이러스 검사', 
+            f'선택한 파일({selected_file_name})을 VirusTotal로 검사하시겠습니까?',
+            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.No
+        )
         
         if reply == QMessageBox.Yes:
             try:
-                dll_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'build', 'vrsapi.dll')
+                # Load DLL
+                dll_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'build', 'vrsapi1.dll')
+                print("DLL Path:", dll_path)  # DLL 경로 출력 (디버깅)
                 vrs_dll = cdll.LoadLibrary(dll_path)
-                
 
                 scan_file = vrs_dll.scan_file_virustotal
                 scan_file.argtypes = [c_char_p, c_char_p, c_size_t]
                 scan_file.restype = c_bool
                 
-                result_buffer = create_string_buffer(4096)
+                # 버퍼 크기를 더 크게 설정
+                result_buffer = create_string_buffer(65536)  # 64KB
                 file_path_bytes = file_path.encode('utf-8')
                 
-                success = scan_file(file_path_bytes, result_buffer, 4096)
+                # 바이러스 검사 호출
+                success = scan_file(file_path_bytes, result_buffer, 65536)
                 
                 if success:
-                    result = result_buffer.value.decode('utf-8')
-                    QMessageBox.information(self, "바이러스 검사 결과", result)
+                    try:
+                        # UTF-8 디코딩 및 JSON 파싱
+                        result = result_buffer.value.decode('utf-8')
+                        json_data = json.loads(result)
+                        parsed_result = self.parse_scan_result(json_data, selected_file_name)
+                        QMessageBox.information(self, "바이러스 검사 결과", parsed_result)
+                    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                        # 디코딩 실패 또는 JSON 파싱 오류 처리
+                        raw_data = result_buffer.raw
+                        print("[DEBUG] Raw Data:", raw_data)  # 원본 바이너리 데이터 출력
+                        QMessageBox.critical(
+                            self, 
+                            "오류", 
+                            f"결과 처리 중 오류 발생:\n{str(e)}\n\n"
+                            f"Raw Data (binary): {raw_data}"
+                        )
                 else:
-                    error_msg = result_buffer.value.decode('utf-8')
+                    # 검사 실패 처리 (에러 메시지 디코딩 시도)
+                    try:
+                        error_msg = result_buffer.value.decode('utf-8')
+                    except UnicodeDecodeError:
+                        error_msg = result_buffer.value.decode('latin1', errors='replace')
                     QMessageBox.warning(self, "검사 실패", f"바이러스 검사 중 오류가 발생했습니다.\n{error_msg}")
                     
             except Exception as e:
-                QMessageBox.critical(self, "오류", 
-                                   f"DLL 로드 또는 실행 중 오류 발생:\n{str(e)}\n\n"
-                                   f"1. .dll이 path 문제.\n"
-                                   f"2. VIRUSTOTAL_API_KEY 환경변수가 설정되어 있는지 확인해주세요.")
+                QMessageBox.critical(
+                    self, 
+                    "오류", 
+                    f"DLL 로드 또는 실행 중 오류 발생:\n{str(e)}\n\n"
+                    f"1. DLL 경로를 확인하세요.\n"
+                    f"2. 환경 변수 설정을 확인하세요."
+                )
+
+    def parse_scan_result(self, json_data, file_name):
+        """결과 JSON에서 탐지된 엔진과 검사 상태만 출력"""
+        try:
+            attributes = json_data.get("data", {}).get("attributes", {})
+            stats = attributes.get("last_analysis_stats", {})
+
+            # 분석 결과
+            total_engines = sum(stats.values())
+            detected = stats.get("malicious", 0)
+            
+            detection_summary = f"{detected}/{total_engines}"
+            result_status = "위험 없음" if detected == 0 else "위험 있음"
+
+            return f"이름: {file_name}\n탐지된 엔진: {detection_summary}\n검사 상태: {result_status}"
+        except KeyError as e:
+            return f"결과 처리 중 오류 발생: {str(e)}"
