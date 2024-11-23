@@ -196,6 +196,21 @@ class Tab_FileExplorer(QWidget):
             index = tab_widget.indexOf(self)
             tab_widget.setTabText(index, os.path.basename(path) or "루트")
 
+    def get_size(self,path):
+        """파일 또는 폴더 크기를 계산"""
+        if os.path.isfile(path):
+            return os.path.getsize(path)  # 파일 크기 반환
+        elif os.path.isdir(path):
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if not os.path.islink(file_path):
+                        total_size += os.path.getsize(file_path)
+            return total_size  # 폴더 크기 반환
+        else:
+            raise ValueError(f"Invalid path: {path} is neither a file nor a folder.")
+
     def show_context_menu(self, pos):
         index = self.file_view.indexAt(pos)
         menu = QMenu(self)
@@ -219,11 +234,23 @@ class Tab_FileExplorer(QWidget):
 
                 if action:
                     if action == secure_action:
-                        # AES 키가 설정되었는지 먼저 확인
+                        # AES 키 확인
                         if self.pwd.AESkey is None:  # None으로 체크
                             QMessageBox.warning(self, "Error", "AES 키가 설정되지 않았습니다.")
                             return  # 키가 없으면 더 이상 실행하지 않음
 
+                        # 크기 확인 및 제한 (5GB = 5 * 1024^3 bytes)
+                        size_limit = 5 * 1024**3  # 5GB
+                        if not os.path.exists(file_path):
+                            QMessageBox.critical(self, "Error", "경로가 존재하지 않습니다.")
+                            return
+
+                        size_in_bytes = self.get_size(file_path)
+                        if size_in_bytes > size_limit:
+                            QMessageBox.warning(self, "Error", "파일 또는 폴더 크기가 5GB를 초과하여 작업을 수행할 수 없습니다.")
+                            return  # 크기 초과 시 실행 중단
+
+                        # 인증 여부 확인
                         if not self.secure_manager.authenticated:
                             # 잠금 메시지창
                             reply = QMessageBox.question(
@@ -275,3 +302,5 @@ class Tab_FileExplorer(QWidget):
                 QMessageBox.critical(self, "Error", f"새 파일 만들기 중 오류가 발생했습니다: {str(e)}")
         else:
             QMessageBox.critical(self, "Error", "새 파일 만들기 기능이 설정되지 않았습니다.")
+
+    
