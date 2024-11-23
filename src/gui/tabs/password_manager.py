@@ -376,16 +376,26 @@ class PasswordManager:
         message = (
     "<p style='font-size:16px;'>설정을 초기화하시겠습니까?</p>"
     "<p style='color:red; font-weight:bold; font-size:20px; text-align:center;'>※ 주의사항 ※</p>"
-    "<ul style='font-size:16px; color:black; line-height:1.5;'>"
-    "<li>초기화 과정에서 암호키가 삭제되므로 보안폴더 내 모든 파일이 복호화됩니다.</li>"
-    "<li>복호화된 파일은 외부에 노출될 가능성이 있습니다.</li>"
-    "<li>파일 수가 많을수록 복호화 시간이 길어질 수 있고 오작동 날수있습니다.</li>"
-    "<li><b><u>파일을 해제하고 초기화하는것을 추천합니다.(파일깨져도 책임안짐)</li>"
+    "<ul style='font-size:16px; color:black; line-height:1.8; margin-top:10px;'>"
+    "<li style='margin-bottom:10px;'>"
+    "<b style='color:darkred;'>초기화 과정에서 암호키가 삭제되므로 보안폴더 내 모든 파일이 복호화됩니다.</b>"
+    "</li>"
+    "<li style='margin-bottom:10px;'>"
+    "<b style='color:darkred;'>복호화된 파일은 외부에 노출될 가능성이 있습니다.</b>"
+    "</li>"
+    "<li style='margin-bottom:10px;'>"
+    "<b style='color:darkred;'>파일 수가 많을수록 복호화 시간이 길어질 수 있고 오작동 날 수 있습니다.</b>"
+    "</li>"
+    "<li style='margin-bottom:10px;'>"
+    "<b><u>파일을 해제하고 초기화하는 것을 추천합니다.</u></b><br>"
+    "<span style='color:darkred; font-weight:bold;'>※ 파일 깨져도 책임 안짐 ※</span>"
+    "</li>"
     "</ul>"
     "<p style='font-size:16px; color:black;'>"
     "초기화 후 보안을 유지하려면 반드시 새로운 비밀번호를 설정해 주세요."
     "</p>"
 )
+
 
 
         label = QLabel(message)
