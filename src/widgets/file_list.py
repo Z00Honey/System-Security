@@ -1,7 +1,8 @@
-# widgets/file_list.py
-from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QCursor
 from models.file_system_model import FileExplorerModel
+from widgets.file_information import FileInformation
 import os
 
 class FileList(QWidget):
@@ -22,20 +23,21 @@ class FileList(QWidget):
         
         self.tree_view.doubleClicked.connect(self.on_double_click)
         
+        # 파일 정보 다이얼로그 초기화
+        self.tree_view.clicked.connect(self.show_file_info)
+        self.file_info = FileInformation(self)
+
     def setup_ui(self):
-        # 기본 UI 설정
         self.tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tree_view.setDragEnabled(True)
         self.tree_view.setAcceptDrops(True)
         self.tree_view.setDropIndicatorShown(True)
         self.tree_view.setEditTriggers(QAbstractItemView.EditKeyPressed | QAbstractItemView.SelectedClicked)
         
-        # 헤더 설정
         header = self.tree_view.header()
         header.setStretchLastSection(True)
         header.setSectionsMovable(True)
         
-        # 트리뷰 설정
         self.tree_view.setRootIsDecorated(False)
         self.tree_view.setItemsExpandable(False)
         self.tree_view.setAlternatingRowColors(True)
@@ -43,6 +45,12 @@ class FileList(QWidget):
     def setup_model(self):
         self.model = FileExplorerModel()
         self.tree_view.setModel(self.model)
+
+        self.tree_view.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.tree_view.header().setStretchLastSection(False)
+        self.tree_view.header().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.tree_view.header().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.tree_view.header().setSectionResizeMode(3, QHeaderView.Fixed)
         
         # 열 크기 설정
         self.tree_view.setColumnWidth(0, 300)  # Name
@@ -54,6 +62,21 @@ class FileList(QWidget):
         initial_path = os.path.expanduser("~")
         self.set_current_path(initial_path)
         
+        #파일 정보
+    def show_file_info(self, index):
+        file_path = self.model.filePath(index)
+        file_info = {
+            "이름": self.model.fileName(index),
+            "경로": file_path,
+            "유형": "폴더" if self.model.isDir(index) else f"{self.model.fileInfo(index).suffix().upper()} 파일",
+            "수정한 날짜": self.model.fileInfo(index).lastModified().toString("yyyy-MM-dd hh:mm:ss"),
+            "크기": self.model.size(index) if not self.model.isDir(index) else "폴더"
+        }
+        # FileArea의 file_info 위젯 가져오기
+        file_area = self.parent()
+        if hasattr(file_area, 'file_info'):
+            file_area.file_info.show_file_info(file_info)        
+
     def get_main_window(self):
         parent = self.parent()
         while parent is not None:

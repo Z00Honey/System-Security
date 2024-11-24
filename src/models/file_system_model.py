@@ -5,12 +5,8 @@ import os
 class FileExplorerModel(QFileSystemModel):
     def __init__(self):
         super().__init__()
-        # 루트 경로 설정
         self.setRootPath("")
-        # 필터 설정 (숨김 파일 표시 여부 등)
         self.setFilter(QDir.AllEntries | QDir.NoDotAndDotDot)
-        
-        # 열 헤더 설정
         self._headers = ["Name", "Date Modified", "Type", "Size"]
         
     def headerData(self, section, orientation, role):

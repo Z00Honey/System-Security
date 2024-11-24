@@ -9,14 +9,14 @@ class FileArea(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        
+
         self.file_list = FileList(self)
-        self.layout.addWidget(self.file_list, 4)
+        self.layout.addWidget(self.file_list, 1)        
         
         self.add_horizontal_separator()
 
         self.file_info = FileInformation(self)
-        self.layout.addWidget(self.file_info, 1)
+        self.layout.addWidget(self.file_info)
 
         self.setLayout(self.layout)
 
