@@ -33,6 +33,3 @@ class AddressBar(QWidget):
         line_separator.setFrameShadow(QFrame.Plain)
         line_separator.setStyleSheet("color: black;")
         self.layout.addWidget(line_separator)
-
-
-

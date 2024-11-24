@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
+from . import global_variable
 import os
 
 class NavigationWidget(QWidget):
@@ -41,6 +42,7 @@ class NavigationWidget(QWidget):
 
         # 초기 경로를 히스토리에 추가
         initial_path = os.path.expanduser("~")
+        global_variable.GLOBAL_CURRENT_PATH = initial_path
         self.add_to_history(initial_path)
 
     def create_button(self, icon_name, tooltip):
@@ -97,6 +99,9 @@ class NavigationWidget(QWidget):
             current_path = file_list.get_current_path()
             parent_path = os.path.dirname(current_path)
             if os.path.exists(parent_path) and parent_path != current_path:
+
+                global_variable.GLOBAL_CURRENT_PATH = parent_path
+
                 self.add_to_history(parent_path)
                 file_list.set_current_path(parent_path)
                 self.update_button_states()
@@ -113,3 +118,4 @@ class NavigationWidget(QWidget):
         self.history.append(path)
         self.current_index += 1
         self.update_button_states()
+ 

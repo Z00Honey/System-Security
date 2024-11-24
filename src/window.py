@@ -11,6 +11,10 @@ from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
 from utils.native.native_event import _nativeEvent
 
+global GLOBAL_CURRENT_PATH
+
+GLOBAL_CURRENT_PATH = ""
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -56,7 +60,6 @@ class MainWindow(QMainWindow):
 
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        #self.layout.addStretch()
 
     def auto_position(self) -> tuple:
         display = get_monitors()[0]

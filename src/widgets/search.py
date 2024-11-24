@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QHBoxLayout, QPushButton, QSizeP
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
+from os.path import join
+from . import global_variable
 
 class SearchBar(QWidget):
     def __init__(self, parent=None):
@@ -36,7 +38,9 @@ class SearchBar(QWidget):
         self.search_button.setFixedSize(30, 30)
 
     def on_search(self):
+
         search_text = self.search_input.text()
-        print(f"Searching for: {search_text}")
+        print(f"Searching for: {join(global_variable.GLOBAL_CURRENT_PATH, search_text)}")
+        
 
 #밑에 검색 로직 추가
