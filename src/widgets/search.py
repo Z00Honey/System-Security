@@ -27,7 +27,7 @@ class SearchBar(QWidget):
         self.set_search_button_icon()
 
         self.setLayout(self.layout)
-        self.setStyleSheet(load_stylesheet("search.css"))
+        self.setStyleSheet(load_stylesheet("address_bar.css"))
 
     def set_search_button_icon(self):
         icon_path = image_base_path("search.png")

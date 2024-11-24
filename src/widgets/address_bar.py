@@ -25,7 +25,7 @@ class AddressBar(QWidget):
         self.layout.addWidget(self.search_bar, 1)
 
         self.setLayout(self.layout)
-        self.setStyleSheet(load_stylesheet("path.css"))
+        self.setStyleSheet(load_stylesheet("address_bar.css"))
 
     def add_line_separator(self) -> None:
         line_separator = QFrame(self)

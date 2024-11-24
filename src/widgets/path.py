@@ -21,7 +21,7 @@ class PathBar(QWidget):
         self.layout.setAlignment(self.path_label, Qt.AlignCenter)  
 
         self.setLayout(self.layout)
-        self.setStyleSheet(load_stylesheet("path.css"))
+        self.setStyleSheet(load_stylesheet("address_bar.css"))
 
     def update_path(self, new_path: str):
         self.path_label.setText(new_path)

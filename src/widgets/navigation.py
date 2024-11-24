@@ -30,7 +30,7 @@ class NavigationWidget(QWidget):
         self.layout.addWidget(self.refresh_button)
 
         self.setLayout(self.layout)
-        self.setStyleSheet(load_stylesheet("navigation.css"))
+        self.setStyleSheet(load_stylesheet("address_bar.css"))
         self.setObjectName("navigation_widget")
 
         # 버튼 이벤트 연결
