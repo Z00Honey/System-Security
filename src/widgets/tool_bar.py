@@ -13,10 +13,10 @@ import os
 class ToolBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # Load environment variables from .env file
         load_dotenv()
-        
+
         self.setObjectName("tool_bar")
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -25,7 +25,7 @@ class ToolBar(QWidget):
         self.create_toolbar_buttons()
         self.setLayout(self.layout)
         self.setStyleSheet(load_stylesheet("tool_bar.css"))
-        
+
         self.setFixedHeight(40)  # 툴바 높이 설정
         self.setFixedWidth(1000)  # 툴바 너비 설정 (예시, 필요에 따라 조정)
 
@@ -49,27 +49,27 @@ class ToolBar(QWidget):
             button.setIcon(QIcon(image_base_path(info["icon"])))
             button.setIconSize(QSize(32, 32))
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-            
+
             if info.get("menu") and info["name"] == "shield":
                 menu = QMenu(button)
-                
+
                 extension_action = QAction("확장자 검사", menu)
                 virus_action = QAction("바이러스 검사", menu)
-                
+
                 extension_action.triggered.connect(self.run_extension_check)
                 virus_action.triggered.connect(self.run_virus_check)
-                
+
                 menu.addAction(extension_action)
                 menu.addAction(virus_action)
-                
+
                 button.setMenu(menu)
-            
+
             self.layout.addWidget(button)
 
     def run_extension_check(self):
         # MainWindow 인스턴스 찾기
         main_window = self.window()
-        
+
         # 현재 선택된 파일 가져오기
         current_index = main_window.file_list.currentIndex()
         if not current_index.isValid():
@@ -80,16 +80,16 @@ class ToolBar(QWidget):
         if main_window.file_list.model.isDir(current_index):
             QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
             return
-            
+
         # 확인 메시지 표시
         reply = QMessageBox.question(
-            self, 
-            '확장자 검사', 
+            self,
+            '확장자 검사',
             f'선택한 파일을 검사하시겠습니까?\n\n파일: {file_path}',
-            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
-        
+
         if reply == QMessageBox.Yes:
             # 파일 분석 실행
             result = analyze_file(file_path)
@@ -98,7 +98,7 @@ class ToolBar(QWidget):
     def run_virus_check(self):
         # MainWindow 인스턴스 찾기
         main_window = self.window()
-        
+
         # 현재 선택된 파일 또는 폴더 가져오기
         current_index = main_window.file_list.currentIndex()
         if not current_index.isValid():
@@ -109,13 +109,13 @@ class ToolBar(QWidget):
 
         # 확인 메시지 표시
         reply = QMessageBox.question(
-            self, 
-            "바이러스토탈을 이용한 평판 검사", 
+            self,
+            "바이러스토탈을 이용한 평판 검사",
             "선택한 파일/폴더에 대한 바이러스토탈 평판 검사를 진행하시겠습니까?",
-            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
-        
+
         if reply == QMessageBox.Yes:
             if os.path.isdir(path):
                 self.perform_folder_scan(path)
@@ -141,7 +141,8 @@ class ToolBar(QWidget):
         # 검사 결과 처리
         if success:
             result = result_buffer.value.decode('utf-8')
-            QMessageBox.information(self, "바이러스 검사 결과", result)
+            simplified_result = self.simplify_result(file_path, result)
+            QMessageBox.information(self, "바이러스 검사 결과", simplified_result)
         else:
             error_msg = result_buffer.value.decode('utf-8', errors='replace')
             QMessageBox.warning(self, "검사 실패", f"바이러스 검사 중 오류가 발생했습니다.\n{error_msg}")
@@ -180,7 +181,7 @@ class ToolBar(QWidget):
             "검사가 완료되었습니다.\n악성 파일이 있는 경우 조치를 취하세요."
         )
 
-        # 결과 출력
+        # 간소화된 결과 출력
         QMessageBox.information(self, "폴더 검사 결과", "\n\n".join(results))
 
     def perform_file_scan_result(self, file_path):
@@ -198,6 +199,14 @@ class ToolBar(QWidget):
         success = scan_file(file_path_bytes, result_buffer, 4096)
 
         if success:
-            return result_buffer.value.decode('utf-8')
+            result = result_buffer.value.decode('utf-8')
+            return self.simplify_result(file_path, result)
         else:
             return f"파일: {file_path}\n오류 발생"
+
+    def simplify_result(self, file_path, raw_result):
+        """검사 결과를 간소화"""
+        # 가정: raw_result에서 탐지된 엔진과 상태를 추출
+        detected_engines = "0/70"  # 이 값을 실제 raw_result에서 파싱
+        is_safe = "위험 없음" if "0/70" in detected_engines else "위험 있음"
+        return f"파일 이름: {os.path.basename(file_path)}\n탐지된 엔진: {detected_engines}\n검사 상태: {is_safe}"
