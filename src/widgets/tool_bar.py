@@ -96,80 +96,71 @@ class ToolBar(QWidget):
         # MainWindow 인스턴스 찾기
         main_window = self.window()
         
-        # 현재 선택된 파일 가져오기
+        # 현재 선택된 항목 가져오기
         current_index = main_window.file_list.currentIndex()
         if not current_index.isValid():
-            QMessageBox.warning(self, "경고", "파일을 선택해주세요.")
+            QMessageBox.warning(self, "경고", "파일 또는 폴더를 선택해주세요.")
             return
 
-        file_path = main_window.file_list.model.filePath(current_index)
+        selected_path = main_window.file_list.model.filePath(current_index)
+
         if main_window.file_list.model.isDir(current_index):
-            QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
-            return
+            self.perform_folder_scan(selected_path)
+        else:
+            self.perform_file_scan(selected_path)
 
-        # 파일 이름 추출
-        selected_file_name = os.path.basename(file_path)
+    def perform_file_scan(self, file_path):
+        """파일 검사 결과를 바로 출력"""
+        result = self.perform_virus_scan(file_path)
+        QMessageBox.information(self, "바이러스 검사 결과", result)
 
-        # 확인 메시지 표시
-        reply = QMessageBox.question(
-            self, 
-            '바이러스 검사', 
-            f'선택한 파일({selected_file_name})을 VirusTotal로 검사하시겠습니까?',
-            QMessageBox.Yes | QMessageBox.No, 
-            QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            try:
-                # Load DLL
-                dll_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'build', 'vrsapi1.dll')
-                print("DLL Path:", dll_path)  # DLL 경로 출력 (디버깅)
-                vrs_dll = cdll.LoadLibrary(dll_path)
+    def perform_folder_scan(self, folder_path):
+        """폴더 내 모든 파일을 검사한 결과를 한 번에 출력"""
+        results = []
+        for root, _, files in os.walk(folder_path):
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                result = self.perform_virus_scan(file_path)
+                results.append(result)
 
-                scan_file = vrs_dll.scan_file_virustotal
-                scan_file.argtypes = [c_char_p, c_char_p, c_size_t]
-                scan_file.restype = c_bool
-                
-                # 버퍼 크기를 더 크게 설정
-                result_buffer = create_string_buffer(65536)  # 64KB
-                file_path_bytes = file_path.encode('utf-8')
-                
-                # 바이러스 검사 호출
-                success = scan_file(file_path_bytes, result_buffer, 65536)
-                
-                if success:
-                    try:
-                        # UTF-8 디코딩 및 JSON 파싱
-                        result = result_buffer.value.decode('utf-8')
-                        json_data = json.loads(result)
-                        parsed_result = self.parse_scan_result(json_data, selected_file_name)
-                        QMessageBox.information(self, "바이러스 검사 결과", parsed_result)
-                    except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                        # 디코딩 실패 또는 JSON 파싱 오류 처리
-                        raw_data = result_buffer.raw
-                        print("[DEBUG] Raw Data:", raw_data)  # 원본 바이너리 데이터 출력
-                        QMessageBox.critical(
-                            self, 
-                            "오류", 
-                            f"결과 처리 중 오류 발생:\n{str(e)}\n\n"
-                            f"Raw Data (binary): {raw_data}"
-                        )
-                else:
-                    # 검사 실패 처리 (에러 메시지 디코딩 시도)
-                    try:
-                        error_msg = result_buffer.value.decode('utf-8')
-                    except UnicodeDecodeError:
-                        error_msg = result_buffer.value.decode('latin1', errors='replace')
-                    QMessageBox.warning(self, "검사 실패", f"바이러스 검사 중 오류가 발생했습니다.\n{error_msg}")
-                    
-            except Exception as e:
-                QMessageBox.critical(
-                    self, 
-                    "오류", 
-                    f"DLL 로드 또는 실행 중 오류 발생:\n{str(e)}\n\n"
-                    f"1. DLL 경로를 확인하세요.\n"
-                    f"2. 환경 변수 설정을 확인하세요."
-                )
+        # 모든 검사 결과를 모아서 표시
+        QMessageBox.information(self, "폴더 검사 결과", "\n\n".join(results))
+
+    def perform_virus_scan(self, file_path):
+        """파일 경로를 받아 바이러스 검사를 수행"""
+        file_name = os.path.basename(file_path)
+
+        try:
+            dll_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'build', 'vrsapi1.dll')
+            print("DLL Path:", dll_path)  # DLL 경로 출력
+            vrs_dll = cdll.LoadLibrary(dll_path)
+
+            scan_file = vrs_dll.scan_file_virustotal
+            scan_file.argtypes = [c_char_p, c_char_p, c_size_t]
+            scan_file.restype = c_bool
+
+            result_buffer = create_string_buffer(65536)
+            file_path_bytes = file_path.encode('utf-8')
+
+            success = scan_file(file_path_bytes, result_buffer, 65536)
+
+            if success:
+                try:
+                    result = result_buffer.value.decode('utf-8')
+                    json_data = json.loads(result)
+                    return self.parse_scan_result(json_data, file_name)
+                except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                    raw_data = result_buffer.raw
+                    print("[DEBUG] Raw Data:", raw_data)  # 원본 데이터 출력
+                    return f"파일: {file_name}\n결과 처리 중 오류 발생: {str(e)}"
+            else:
+                try:
+                    error_msg = result_buffer.value.decode('utf-8')
+                except UnicodeDecodeError:
+                    error_msg = result_buffer.value.decode('latin1', errors='replace')
+                return f"파일: {file_name}\n검사 실패: {error_msg}"
+        except Exception as e:
+            return f"파일: {file_name}\nDLL 오류: {str(e)}"
 
     def parse_scan_result(self, json_data, file_name):
         """결과 JSON에서 탐지된 엔진과 검사 상태만 출력"""
@@ -177,7 +168,6 @@ class ToolBar(QWidget):
             attributes = json_data.get("data", {}).get("attributes", {})
             stats = attributes.get("last_analysis_stats", {})
 
-            # 분석 결과
             total_engines = sum(stats.values())
             detected = stats.get("malicious", 0)
             
