@@ -16,6 +16,7 @@ class AESManager:
         self.AES.aes_cbc_decrypt.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte)]
         self.AES.aes_cbc_decrypt.restype = ctypes.c_int
 
+
         # PasswordManager 객체 생성 및 자동 설정 로드
         self.pm = PasswordManager()  # 객체 이름을 짧게 변경
 
@@ -120,3 +121,5 @@ class AESManager:
                 QMessageBox.warning(None, "경고", f"유효하지 않은 경로입니다: {path}")
         except Exception as e:
             QMessageBox.critical(None, "복호화 오류", f"복호화 작업 중 오류 발생: {e}")
+
+    

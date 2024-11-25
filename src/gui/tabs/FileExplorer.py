@@ -14,6 +14,7 @@ from PyQt5.QtCore import QSortFilterProxyModel, QDir, Qt
 import os
 from .password_manager import PasswordManager
 from .ProcessAES import AESManager
+from .Thread import TaskRunner
 
 # <정렬 및 필터링을 위한 사용자 정의 모델 클래스>
 class SortFilterProxyModel(QSortFilterProxyModel):
@@ -195,6 +196,21 @@ class Tab_FileExplorer(QWidget):
             index = tab_widget.indexOf(self)
             tab_widget.setTabText(index, os.path.basename(path) or "루트")
 
+    def get_size(self,path):
+        """파일 또는 폴더 크기를 계산"""
+        if os.path.isfile(path):
+            return os.path.getsize(path)  # 파일 크기 반환
+        elif os.path.isdir(path):
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if not os.path.islink(file_path):
+                        total_size += os.path.getsize(file_path)
+            return total_size  # 폴더 크기 반환
+        else:
+            raise ValueError(f"Invalid path: {path} is neither a file nor a folder.")
+
     def show_context_menu(self, pos):
         index = self.file_view.indexAt(pos)
         menu = QMenu(self)
@@ -218,20 +234,52 @@ class Tab_FileExplorer(QWidget):
 
                 if action:
                     if action == secure_action:
+                        # AES 키 확인
+                        if self.pwd.AESkey is None:  # None으로 체크
+                            QMessageBox.warning(self, "Error", "AES 키가 설정되지 않았습니다.")
+                            return  # 키가 없으면 더 이상 실행하지 않음
+
+                        # 크기 확인 및 제한 (5GB = 5 * 1024^3 bytes)
+                        size_limit = 5 * 1024**3  # 5GB
+                        if not os.path.exists(file_path):
+                            QMessageBox.critical(self, "Error", "경로가 존재하지 않습니다.")
+                            return
+
+                        size_in_bytes = self.get_size(file_path)
+                        if size_in_bytes > size_limit:
+                            QMessageBox.warning(self, "Error", "파일 또는 폴더 크기가 5GB를 초과하여 작업을 수행할 수 없습니다.")
+                            return  # 크기 초과 시 실행 중단
+
+                        # 인증 여부 확인
                         if not self.secure_manager.authenticated:
-                            # 잠금 수행
-                            try:
-                                self.secure_manager.lock(file_path)
-                            except Exception as e:
-                                QMessageBox.critical(self, "Error", f"파일 잠금 중 오류가 발생했습니다: {str(e)}")
+                            # 잠금 메시지창
+                            reply = QMessageBox.question(
+                                self, "잠금", "해당 폴더(파일)를 잠금 처리 하시겠습니까?",
+                                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+                            )
+                            if reply == QMessageBox.Yes:
+                                try:
+                                    TaskRunner.run(self.secure_manager.lock, file_path)
+                                    QMessageBox.information(self, "잠금 완료", "폴더(파일)가 성공적으로 잠금 처리되었습니다.")
+                                except Exception as e:
+                                    QMessageBox.critical(self, "Error", f"잠금 중 오류 발생: {str(e)}")
                         else:
-                            # 해제 수행
-                            try:
-                                self.secure_manager.unlock(file_path)
-                            except Exception as e:
-                                QMessageBox.critical(self, "Error", f"파일 해제 중 오류가 발생했습니다: {str(e)}")
+                            # 해제 메시지창
+                            reply = QMessageBox.question(
+                                self, "해제", "해당 폴더(파일)를 잠금 해제 하시겠습니까?",
+                                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+                            )
+                            if reply == QMessageBox.Yes:
+                                try:
+                                    TaskRunner.run(self.secure_manager.unlock, file_path)
+                                    QMessageBox.information(self, "해제 완료", "폴더(파일)가 성공적으로 잠금 해제되었습니다.")
+                                except Exception as e:
+                                    QMessageBox.critical(self, "Error", f"해제 중 오류 발생: {str(e)}")
+
                     elif action == reset_action:
+                        # 비밀번호 초기화 작업
                         self.pwd.reset()
+
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"컨텍스트 메뉴를 표시하는 동안 오류가 발생했습니다: {str(e)}")
@@ -254,3 +302,5 @@ class Tab_FileExplorer(QWidget):
                 QMessageBox.critical(self, "Error", f"새 파일 만들기 중 오류가 발생했습니다: {str(e)}")
         else:
             QMessageBox.critical(self, "Error", "새 파일 만들기 기능이 설정되지 않았습니다.")
+
+    
