@@ -1,0 +1,7 @@
+QLabel{
+    background-color: transparent;
+    font-size: 25px;
+}
+#widget{
+    border: 1px solid black;
+}
