@@ -42,6 +42,12 @@ class FileList(QWidget):
         self.tree_view.setItemsExpandable(False)
         self.tree_view.setAlternatingRowColors(True)
         
+        self.tree_view.setStyleSheet("""
+            QTreeView::item { 
+                height: 35px;
+                padding: 5px;
+            }
+        """)
     def setup_model(self):
         self.model = FileExplorerModel()
         self.tree_view.setModel(self.model)
