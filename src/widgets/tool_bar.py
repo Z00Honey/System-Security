@@ -48,8 +48,14 @@ class ToolBar(QWidget):
         for info in button_info:
             button = QPushButton()
             button.setIcon(QIcon(image_base_path(info["icon"])))
-            button.setIconSize(QSize(32, 32))
+            if info["name"] == "memo":
+                button.setIconSize(QSize(36, 36))
+            elif info["name"] == "shield":
+                button.setIconSize(QSize(32, 32))
+            else:
+                button.setIconSize(QSize(28, 28))
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+            self.layout.addWidget(button)
 
             if info.get("menu") and info["name"] == "shield":
                 menu = QMenu(button)
