@@ -117,7 +117,10 @@ class ToolBar(QWidget):
         message_box = QMessageBox(self)
         message_box.setWindowTitle("확장자 검사")
         message_box.setText(f"선택한 파일에 대한 포맷 및 확장자 불일치 검사를 진행하시겠습니까?")
-        message_box.setIcon(QMessageBox.Question)
+         # 아이콘 설정
+        custom_icon_path = image_base_path("shield.png")  # src/assets/images/shield.png를 기준으로 동작
+        message_box.setIconPixmap(QPixmap(custom_icon_path))  # 커스텀 아이콘 설정
+
 
         # 표준 버튼 추가
         message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -181,10 +184,9 @@ class ToolBar(QWidget):
         message_box = QMessageBox(self)
         message_box.setWindowTitle("바이러스토탈을 이용한 평판 검사")
         message_box.setText("선택한 파일/폴더에 대한 바이러스토탈 평판 검사를 진행하시겠습니까?")
-         # 사용자 정의 아이콘 설정
-        custom_icon_path = "shield.png"  # 사용자 정의 아이콘 경로
-        custom_icon = QPixmap(custom_icon_path)
-        message_box.setIconPixmap(custom_icon)
+         # 아이콘 설정
+        custom_icon_path = image_base_path("shield.png")  # src/assets/images/shield.png를 기준으로 동작
+        message_box.setIconPixmap(QPixmap(custom_icon_path))  # 커스텀 아이콘 설정
 
         # 표준 버튼 추가
         message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
