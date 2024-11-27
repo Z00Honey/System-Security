@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QSizePolicy, QMenu,
     QAction, QMessageBox, QProgressDialog
 )
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
@@ -80,27 +81,69 @@ class ToolBar(QWidget):
         # 현재 선택된 파일 가져오기
         current_index = main_window.file_explorer_bar.file_area.file_list.tree_view.currentIndex()
         if not current_index.isValid():
-            QMessageBox.warning(self, "경고", "파일을 선택해주세요.")
+            # QMessageBox 생성
+            message_box = QMessageBox(self)
+            message_box.setWindowTitle("경고")
+            message_box.setText("파일을 선택해주세요.")
+            message_box.setIcon(QMessageBox.Warning)
+            message_box.setStandardButtons(QMessageBox.Ok)
+
+            # "OK" 버튼 텍스트를 "확인"으로 변경
+            message_box.button(QMessageBox.Ok).setText("확인")
+
+            # 메시지박스 실행
+            message_box.exec_()
             return
 
         file_path = main_window.file_explorer_bar.file_area.file_list.model.filePath(current_index)
+        
         if main_window.file_explorer_bar.file_area.file_list.model.isDir(current_index):
-            QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
+            # QMessageBox 생성
+            message_box = QMessageBox(self)
+            message_box.setWindowTitle("경고")
+            message_box.setText("파일만 검사할 수 있습니다.")
+            message_box.setIcon(QMessageBox.Warning)
+            message_box.setStandardButtons(QMessageBox.Ok)
+
+            # "OK" 버튼 텍스트를 "확인"으로 변경
+            message_box.button(QMessageBox.Ok).setText("확인")
+
+            # 메시지박스 실행
+            message_box.exec_()
             return
 
-        # 확인 메시지 표시
-        reply = QMessageBox.question(
-            self,
-            '확장자 검사',
-            f'선택한 파일을 검사하시겠습니까?\n\n파일: {file_path}',
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
 
+        # QMessageBox 객체 생성
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("확장자 검사")
+        message_box.setText(f"선택한 파일에 대한 포맷 및 확장자 불일치 검사를 진행하시겠습니까?")
+        message_box.setIcon(QMessageBox.Question)
+
+        # 표준 버튼 추가
+        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+        # 버튼 텍스트 변경
+        message_box.button(QMessageBox.Yes).setText("예")
+        message_box.button(QMessageBox.No).setText("아니요")
+
+        # 메시지박스 실행
+        reply = message_box.exec_()
+    
         if reply == QMessageBox.Yes:
+    
             # 파일 분석 실행
             result = analyze_file(file_path)
-            QMessageBox.information(self, "분석 결과", result)
+
+            # 검사 완료 후 결과 메시지 박스
+            result_message = QMessageBox(self)
+            result_message.setWindowTitle("확장자 검사 결과")
+            result_message.setText(result)
+            result_message.setIcon(QMessageBox.Information)
+            result_message.setStandardButtons(QMessageBox.Ok)
+
+            # "확인" 버튼 텍스트 변경
+            result_message.button(QMessageBox.Ok).setText("확인")
+            result_message.exec_()
 
     def run_virus_check(self):
         main_window = self.window()
@@ -111,14 +154,47 @@ class ToolBar(QWidget):
             return
 
         path = main_window.file_explorer_bar.file_area.file_list.model.filePath(current_index)
+        
+        # 선택한 경로가 폴더인지 확인
+        if main_window.file_explorer_bar.file_area.file_list.model.isDir(current_index):
+            
+        # 폴더 내부 파일 확인
+            folder_content = os.listdir(path)
+            files_only = [f for f in folder_content if os.path.isfile(os.path.join(path, f))]
 
-        reply = QMessageBox.question(
-            self,
-            "바이러스토탈을 이용한 평판 검사",
-            "선택한 파일/폴더에 대한 바이러스토탈 평판 검사를 진행하시겠습니까?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+            if not files_only:
+                # QMessageBox 생성
+                message_box = QMessageBox(self)
+                message_box.setWindowTitle("정보")
+                message_box.setText("선택한 폴더에 파일이 없습니다.")
+                message_box.setIcon(QMessageBox.Information)
+                message_box.setStandardButtons(QMessageBox.Ok)
+
+                # "확인" 버튼 텍스트 변경
+                message_box.button(QMessageBox.Ok).setText("확인")
+
+                # 메시지박스 실행
+                message_box.exec_()
+                return
+            
+        # QMessageBox 객체 생성
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("바이러스토탈을 이용한 평판 검사")
+        message_box.setText("선택한 파일/폴더에 대한 바이러스토탈 평판 검사를 진행하시겠습니까?")
+         # 사용자 정의 아이콘 설정
+        custom_icon_path = "shield.png"  # 사용자 정의 아이콘 경로
+        custom_icon = QPixmap(custom_icon_path)
+        message_box.setIconPixmap(custom_icon)
+
+        # 표준 버튼 추가
+        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+        # 버튼 텍스트 변경
+        message_box.button(QMessageBox.Yes).setText("예")
+        message_box.button(QMessageBox.No).setText("아니요")
+
+        # 메시지박스 실행
+        reply = message_box.exec_()
 
         if reply == QMessageBox.Yes:
             self.progress_dialog = QProgressDialog("검사 중...", "취소", 0, 100, self)
@@ -142,8 +218,33 @@ class ToolBar(QWidget):
 
     def on_scan_finished(self, result):
         self.progress_dialog.close()
-        QMessageBox.information(self, "검사 완료", result)
+
+        # QMessageBox 객체 생성
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("검사 완료")
+        message_box.setText(result)
+        message_box.setIcon(QMessageBox.Information)
+        message_box.setStandardButtons(QMessageBox.Ok)
+
+        # "OK" 버튼 텍스트 변경
+        message_box.button(QMessageBox.Ok).setText("확인")
+
+        # 메시지박스 실행
+        message_box.exec_()
+
 
     def on_scan_error(self, error_message):
         self.progress_dialog.close()
-        QMessageBox.critical(self, "오류", f"검사 중 오류가 발생했습니다:\n{error_message}")
+
+        # QMessageBox 생성
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("오류")
+        message_box.setText(f"검사 중 오류가 발생했습니다:\n{error_message}")
+        message_box.setIcon(QMessageBox.Critical)
+        message_box.setStandardButtons(QMessageBox.Ok)
+
+        # "OK" 버튼 텍스트를 "확인"으로 변경
+        message_box.button(QMessageBox.Ok).setText("확인")
+
+        # 메시지박스 실행
+        message_box.exec_()
