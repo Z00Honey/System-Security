@@ -9,6 +9,7 @@ class FileDirectory(QWidget):
         super().__init__(parent)
 
         self.layout = QVBoxLayout()
+        self.setFixedWidth(225)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(5)
 
@@ -51,7 +52,7 @@ class FileDirectory(QWidget):
         button.setText(tooltip) 
         button.setIconSize(QSize(24, 24))
         button.setStyleSheet("text-align: left; padding-left: 10px;")
-        button.setFixedSize(180, 40)
+        button.setFixedSize(225, 40)
 
         return button
     

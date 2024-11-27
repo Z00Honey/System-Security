@@ -10,7 +10,7 @@ class Sidebar(QWidget):
         super().__init__(parent)
 
         self.layout = QVBoxLayout()
-        self.setFixedWidth(300)
+        self.setFixedWidth(225)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         
@@ -32,7 +32,7 @@ class Sidebar(QWidget):
         self.add_horizontal_separator()
 
         # 탐색기 설정 버튼
-        self.settings_button = QPushButton("탐색기 설정")
+        self.settings_button = QPushButton("초기화")
         self.add_icon_to_button(self.settings_button, "setting.png")
         self.layout.addWidget(self.settings_button)
 

@@ -37,12 +37,12 @@ class ToolBar(QWidget):
             {"name": "copy", "icon": "copy.png"},
             {"name": "paste", "icon": "paste.png"},
             {"name": "rename", "icon": "rename.png"},
-            {"name": "share", "icon": "share.png"},
+            #{"name": "share", "icon": "share.png"},
             {"name": "delete", "icon": "delete.png"},
             {"name": "shield", "icon": "shield.png", "menu": True},
-            {"name": "lock", "icon": "lock.png"},
-            {"name": "memo", "icon": "memo.png"},
-            {"name": "view_more", "icon": "view_more.png"},
+            #{"name": "lock", "icon": "lock.png"},
+            #{"name": "memo", "icon": "memo.png"},
+            #{"name": "view_more", "icon": "view_more.png"},
         ]
 
         for info in button_info:
