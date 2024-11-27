@@ -21,7 +21,7 @@ class WidgetTitleBar(QWidget):
         self.parent = parent
 
         self.default_stylesheet = load_stylesheet("title_bar.css")
-        self.background_color = "#d9f3ff"
+        self.background_color = "#BCD8EE"
 
         self.setFixedHeight(50)
         self.size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)

@@ -1,6 +1,14 @@
-QWidget{
-    background-color: white;
-}
-QMainWindow{
+QMainWindow {
     background-color: transparent;
+}
+
+QWidget#WidgetTitleBar {
+    background-color: #BCD8EE;
+}
+
+QWidget#file_explorer_bar,
+QWidget#file_area,
+QWidget#sidebar,
+QWidget#central_widget {
+    background-color: white;
 }
