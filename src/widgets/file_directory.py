@@ -24,12 +24,12 @@ class FileDirectory(QWidget):
         self.desktop_button = self.create_button("desktop.png", "바탕화면")
         self.documents_button = self.create_button("documents.png", "문서")
         self.downloads_button = self.create_button("downloads.png", "다운로드")
-        self.folder_button = self.create_button("folder.png", "폴더")
+        #self.folder_button = self.create_button("folder.png", "폴더")
 
         self.layout.addWidget(self.desktop_button)
         self.layout.addWidget(self.documents_button)
         self.layout.addWidget(self.downloads_button)
-        self.layout.addWidget(self.folder_button)
+        #self.layout.addWidget(self.folder_button)
 
         # 버튼 클릭 이벤트 연결
         self.home_button.clicked.connect(self.go_to_home)
@@ -37,7 +37,7 @@ class FileDirectory(QWidget):
         self.desktop_button.clicked.connect(self.go_to_desktop)
         self.documents_button.clicked.connect(self.go_to_documents)
         self.downloads_button.clicked.connect(self.go_to_downloads)
-        self.folder_button.clicked.connect(self.go_to_home)  # 기본적으로 홈 디렉토리로 이동
+        #self.folder_button.clicked.connect(self.go_to_home)  # 기본적으로 홈 디렉토리로 이동
 
         self.setLayout(self.layout)
         self.setStyleSheet(load_stylesheet("sidebar.css")) 
