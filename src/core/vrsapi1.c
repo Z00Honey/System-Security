@@ -1,6 +1,6 @@
 // vrsapi.c
 // Build Command:
-// cl /LD vrsapi1.c /I"C:\Program Files\OpenSSL-Win64\include" /I"C:\curl-8.10.1_7-win64-mingw\include" /MT /link /LIBPATH:"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MD" /LIBPATH:"C:\curl-8.10.1_7-win64-mingw\lib" libcrypto.lib libssl.lib libcurl.lib wininet.lib /out:vrsapi1.dll
+//cl /LD vrsapi1.c /I"C:\Program Files\OpenSSL-Win64\include" /MT /link /LIBPATH:"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MT" libcrypto_static.lib libssl_static.lib ws2_32.lib wininet.lib advapi32.lib user32.lib crypt32.lib /out:vrsapi1.dll
 
 #ifdef _WIN32
     #include <windows.h>
