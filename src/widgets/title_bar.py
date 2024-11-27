@@ -121,7 +121,7 @@ class WidgetTitleBar(QWidget):
         if state == MaximizeButtonState.HOVER:
             self.MAXIMIZE_BUTTON.setStyleSheet("""
                 QPushButton{
-                    background: #caeeff;
+                    background: #82bdea;
                 }
             """)
         elif state == MaximizeButtonState.NORMAL:
