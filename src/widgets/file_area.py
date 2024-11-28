@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame
 from widgets.file_list import FileList
 from widgets.file_information import FileInformation
-from utils.secure import SecureFolderManager
 
 class FileArea(QWidget):
     def __init__(self, parent=None, secure_manager=None):
@@ -13,7 +12,8 @@ class FileArea(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        self.file_list = FileList(self)
+        # FileList에 secure_manager 전달
+        self.file_list = FileList(self, secure_manager=self.secure_manager)  # 수정: secure_manager 전달
         self.layout.addWidget(self.file_list, 1)        
         
         self.add_horizontal_separator()
