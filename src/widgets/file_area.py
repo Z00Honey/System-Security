@@ -1,10 +1,13 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame
-from widgets.file_list import FileList 
-from widgets.file_information import FileInformation 
+from widgets.file_list import FileList
+from widgets.file_information import FileInformation
+from utils.secure import SecureFolderManager
 
 class FileArea(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, secure_manager=None):
         super().__init__(parent)
+
+        self.secure_manager = secure_manager  # secure_manager 객체 받기
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)

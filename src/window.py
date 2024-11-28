@@ -10,6 +10,7 @@ from widgets.file_explorer_bar import FileExplorerBar
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
 from utils.native.native_event import _nativeEvent
+from utils.secure import SecureFolderManager  ##보안폴더
 
 global GLOBAL_CURRENT_PATH
 
@@ -18,6 +19,7 @@ GLOBAL_CURRENT_PATH = ""
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.secure_manager = SecureFolderManager() ##보안 객체 생성
         self.init_GUI()
 
     def init_GUI(self):
@@ -45,7 +47,7 @@ class MainWindow(QMainWindow):
 
         self.add_horizontal_separator()
 
-        self.address_bar = AddressBar(self)  
+        self.address_bar = AddressBar(self, secure_manager=self.secure_manager)  # 수정: 보안 객체 전달
         self.layout.addWidget(self.address_bar)
 
         self.add_horizontal_separator()
@@ -55,7 +57,8 @@ class MainWindow(QMainWindow):
         
         self.add_horizontal_separator()
 
-        self.file_explorer_bar = FileExplorerBar(self)  # FileExplorerBar를 수평 레이아웃에 추가
+        # 수정: secure_manager를 FileExplorerBar에 전달
+        self.file_explorer_bar = FileExplorerBar(self, secure_manager=self.secure_manager)  # FileExplorerBar에 보안 객체 전달
         self.layout.addWidget(self.file_explorer_bar, 1)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
