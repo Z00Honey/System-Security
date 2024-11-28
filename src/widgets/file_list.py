@@ -109,8 +109,7 @@ class FileList(QWidget):
             if secure_folder_path and secure_folder_path in current_path and not self.secure_manager.authenticated:
                 self.secure_manager.authenticate()  # 인증 시도
                 if not self.secure_manager.authenticated:
-                    QMessageBox.warning(self, "인증 실패", "보안 폴더에 접근하려면 인증이 필요합니다.")
-                    return  # 인증 실패 시 이동 중단
+                   return  # 인증 실패 시 이동 중단
 
             # 보안 폴더에서 벗어나면 인증 해제
             if self.secure_manager and self.secure_manager.authenticated and secure_folder_path not in current_path:
