@@ -915,7 +915,7 @@ class PasswordManager:
 class MappingManager:
     def __init__(self):
         # 매핑 데이터를 저장할 파일 설정
-        self.mapping_file = os.path.join(os.path.dirname(__file__), "meta.json")
+        self.mapping_file = os.path.join(os.path.dirname(__file__), "setting/meta.json")
         self.mapping = self.load_mapping()
 
     def load_mapping(self):
