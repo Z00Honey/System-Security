@@ -10,7 +10,6 @@ from widgets.file_explorer_bar import FileExplorerBar
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
 from utils.native.native_event import _nativeEvent
-from utils.secure import SecureFolderManager  ##보안폴더
 
 global GLOBAL_CURRENT_PATH
 
@@ -19,7 +18,6 @@ GLOBAL_CURRENT_PATH = ""
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.secure_manager = SecureFolderManager() ##보안 객체 생성
         self.init_GUI()
 
     def init_GUI(self):
@@ -47,7 +45,7 @@ class MainWindow(QMainWindow):
 
         self.add_horizontal_separator()
 
-        self.address_bar = AddressBar(self, secure_manager=self.secure_manager)  # 수정: 보안 객체 전달
+        self.address_bar = AddressBar(self)  
         self.layout.addWidget(self.address_bar)
 
         self.add_horizontal_separator()
@@ -57,8 +55,7 @@ class MainWindow(QMainWindow):
         
         self.add_horizontal_separator()
 
-        # 수정: secure_manager를 FileExplorerBar에 전달
-        self.file_explorer_bar = FileExplorerBar(self, secure_manager=self.secure_manager)  # FileExplorerBar에 보안 객체 전달
+        self.file_explorer_bar = FileExplorerBar(self)  # FileExplorerBar를 수평 레이아웃에 추가
         self.layout.addWidget(self.file_explorer_bar, 1)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -96,3 +93,41 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, e) -> None:
         super().resizeEvent(e)
         self.title_bar.resize(self.width(), self.title_bar.height())
+
+    def show_file_list(self) -> None:
+        self.file_explorer_bar.file_area.show_file_list()
+
+    def show_search_results(self) -> None:
+        # self.file_explorer_bar.file_area.search_result_list.show()
+        self.file_explorer_bar.file_area.show_search_results()
+
+    def get_status_tree_view(self) -> bool:
+        search_status = self.file_explorer_bar.file_area.get_status_search_results()
+        file_status = self.file_explorer_bar.file_area.get_status_file_list()
+
+        if search_status != file_status:
+            if search_status:
+                return 1
+            elif file_status:
+                return 2
+        return 0
+
+    def search_result_addItem(self, path) -> None:
+        result_items = self.file_explorer_bar.file_area.search_result_list
+
+        result_items.add_item(path)
+
+    def clear_search_result(self):
+        self.file_explorer_bar.file_area.search_result_list.clear()
+
+    def file_event(self, mode):
+        if mode == 'copy':
+            self.file_explorer_bar.file_area.file_list.copySelectedFiles(cut=False)
+        elif mode == 'cut':
+            self.file_explorer_bar.file_area.file_list.copySelectedFiles(cut=True)
+        elif mode == 'paste':
+            self.file_explorer_bar.file_area.file_list.pasteFiles()
+        elif mode == 'delete':
+            self.file_explorer_bar.file_area.file_list.deleteSelectedFiles()
+        else:
+            return False

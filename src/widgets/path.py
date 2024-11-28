@@ -26,5 +26,6 @@ class PathBar(QWidget):
     def update_path(self, new_path: str):
         self.path_label.setText(new_path)
 
-
+    def get_path(self) -> str:
+        return self.path_label.text()
 

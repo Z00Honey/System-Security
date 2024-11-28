@@ -18,3 +18,42 @@ QPushButton:hover {
 QPushButton:pressed {
     background-color: rgba(0, 0, 0, 0.2);
 }
+
+
+/* QMessageBox 버튼 스타일 */
+QMessageBox QPushButton {
+    border: 1px solid #b4d2e7; /* 버튼 테두리 */
+    background-color: #ffffff; /* 버튼 배경 */
+    border-radius: 5px;        /* 둥근 버튼 */
+    padding: 5px 15px;         /* 버튼 내부 여백 */
+ 
+}
+
+QMessageBox QPushButton:hover {
+    background-color: #d4e9fc; /* 호버 시 배경색 */
+    border: 1px solid #82b3e6; /* 호버 시 테두리 */
+}
+
+QMessageBox QPushButton:pressed {
+    background-color: #c0e0f5; /* 클릭 시 배경색 */
+    border: 1px solid #5fa9e6; /* 클릭 시 테두리 */
+}
+
+
+/* QProgressDialog 스타일 (검사진행 중일 때 디자인)*/ 
+QProgressDialog QPushButton {
+    border: 1px solid #b4d2e7; 
+    background-color: #ffffff; 
+    border-radius: 5px;        
+    padding: 5px 15px;         
+}
+
+QProgressDialog QPushButton:hover {
+    background-color: #d4e9fc;
+    border: 1px solid #82b3e6; 
+}
+
+QProgressDialog QPushButton:pressed {
+    background-color: #c0e0f5;
+    border: 1px solid #5fa9e6; 
+}

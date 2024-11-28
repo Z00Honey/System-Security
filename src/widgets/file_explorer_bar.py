@@ -1,26 +1,21 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame
-from widgets.file_area import FileArea
-from widgets.sidebar import Sidebar
-from utils.secure import SecureFolderManager
+from widgets.file_area import FileArea  
+from widgets.sidebar import Sidebar  
 
 class FileExplorerBar(QWidget):
-    def __init__(self, parent=None, secure_manager=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.secure_manager = secure_manager  # secure_manager 객체를 받음
 
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        # Sidebar에 secure_manager 전달
-        self.sidebar = Sidebar(self, secure_manager=self.secure_manager)
+        self.sidebar = Sidebar(self)
         self.layout.addWidget(self.sidebar)
 
         self.add_horizontal_separator()
 
-        # FileArea에 secure_manager 전달
-        self.file_area = FileArea(self, secure_manager=self.secure_manager)
+        self.file_area = FileArea(self, parent)
         self.layout.addWidget(self.file_area)
 
         self.setLayout(self.layout)

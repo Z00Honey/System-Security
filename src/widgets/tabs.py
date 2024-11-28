@@ -88,7 +88,6 @@ class WidgetNewTab(QWidget):
     #             self.SetStateHoverEvent(TabWidgetState.HOVER, source)
 
     #     elif event.type() == QEvent.Leave:
-    #         print("QEvent.Leave", self.tab_mouse_event == TabWidgetState.HOVER)
     #         if self.tab_mouse_event == TabWidgetState.HOVER:
     #             return super().eventFilter(source, event)
     #         elif source in self.tabs:
@@ -101,11 +100,9 @@ class WidgetNewTab(QWidget):
         normal_stylesheet = load_stylesheet("tab_normal.css", True)
 
         if state == TabWidgetState.HOVER:
-            print("set HOVER")
             self.tab_mouse_event = TabWidgetState.HOVER
             tab.setStyleSheet(self.default_stylesheet + hover_stylesheet)
         elif state == TabWidgetState.NORMAL:
-            print("set NORMAL")
             self.tab_mouse_event = TabWidgetState.NORMAL
             if not tab:
                 for tab_label in self.tabs:

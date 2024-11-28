@@ -1,15 +1,14 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
 from . import global_variable
 import os
-from utils.secure import SecureFolderManager
 
 class NavigationWidget(QWidget):
-    def __init__(self, parent=None, secure_manager=None):  # 보안 객체 추가
+    def __init__(self, parent=None, window=None):
         super().__init__(parent)
-        self.secure_manager = secure_manager  # 보안 객체 저장
+        self.window = window
 
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -53,7 +52,7 @@ class NavigationWidget(QWidget):
         icon_path = image_base_path(icon_name)
         button.setIcon(QIcon(icon_path))
         button.setToolTip(tooltip)
-
+        
         icon_size = 20
         button_size = 40
         button.setFixedSize(button_size, button_size)
@@ -82,14 +81,6 @@ class NavigationWidget(QWidget):
         if self.current_index > 0:
             self.current_index -= 1
             path = self.history[self.current_index]
-            secure_folder_path = os.path.normpath(self.secure_manager.secure_folder_path) if self.secure_manager else None
-
-            # 수정된 부분: 보안 폴더에서 나올 때 인증 해제
-            if secure_folder_path and secure_folder_path not in path and self.secure_manager.authenticated:
-                self.secure_manager.authenticated = False
-                QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어납니다. 인증이 해제됩니다.")
-
-            # 경로 이동 처리
             file_list = self.get_file_list()
             if file_list:
                 file_list.set_current_path(path)
@@ -99,16 +90,6 @@ class NavigationWidget(QWidget):
         if self.current_index < len(self.history) - 1:
             self.current_index += 1
             path = self.history[self.current_index]
-            secure_folder_path = os.path.normpath(self.secure_manager.secure_folder_path) if self.secure_manager else None
-
-            # 수정된 부분: 이동 전에 인증 요구, 실패 시 인덱스 복구 및 이동 중단
-            if secure_folder_path and secure_folder_path in path and not self.secure_manager.authenticated:
-                self.secure_manager.authenticate()
-                if not self.secure_manager.authenticated:
-                    self.current_index -= 1  # 원래 위치로 되돌리기
-                    return  # 이동 중단
-
-            # 경로 이동 처리
             file_list = self.get_file_list()
             if file_list:
                 file_list.set_current_path(path)
@@ -119,27 +100,25 @@ class NavigationWidget(QWidget):
         if file_list:
             current_path = file_list.get_current_path()
             parent_path = os.path.dirname(current_path)
-            secure_folder_path = os.path.normpath(self.secure_manager.secure_folder_path) if self.secure_manager else None
-
-            # 수정된 부분: 보안 폴더를 벗어날 때 인증 해제 및 홈 디렉토리 이동
-            if self.secure_manager and self.secure_manager.authenticated and secure_folder_path not in parent_path:
-                self.secure_manager.authenticated = False
-                QMessageBox.information(self, "인증 해제", "보안 폴더에서 벗어납니다. 인증이 해제됩니다.")
-                parent_path = os.path.expanduser("~")  # 홈 디렉토리로 이동
-
-            # 경로 이동 처리
             if os.path.exists(parent_path) and parent_path != current_path:
+
                 global_variable.GLOBAL_CURRENT_PATH = parent_path
+
                 self.add_to_history(parent_path)
                 file_list.set_current_path(parent_path)
                 self.update_button_states()
 
     def refresh(self):
-        file_list = self.get_file_list()
-        if file_list:
-            current_path = file_list.get_current_path()
-            file_list.set_current_path(current_path)
+        status = self.window.get_status_tree_view()
+        print(status)
 
+        if status == 2: # file list show
+            self.window.show_file_list()
+            file_list = self.get_file_list()
+            if file_list:
+                current_path = file_list.get_current_path()
+                file_list.set_current_path(current_path)
+                
     def add_to_history(self, path):
         # 현재 위치 이후의 기록 삭제
         self.history = self.history[:self.current_index + 1]
