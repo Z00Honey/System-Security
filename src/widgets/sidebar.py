@@ -4,6 +4,7 @@ from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
 from widgets.file_directory import FileDirectory
+from utils.secure import SecureFolderManager
 
 class Sidebar(QWidget):
     def __init__(self, parent=None, secure_manager=None):

@@ -4,6 +4,7 @@ from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
 from . import global_variable
 import os
+from utils.secure import SecureFolderManager
 
 class NavigationWidget(QWidget):
     def __init__(self, parent=None, secure_manager=None):  # 보안 객체 추가

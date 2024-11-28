@@ -10,7 +10,7 @@ from widgets.file_explorer_bar import FileExplorerBar
 from utils.native.util import setWindowNonResizable, isWindowResizable
 from utils.load import load_stylesheet
 from utils.native.native_event import _nativeEvent
-from utils.secure_folder_manager import SecureFolderManager  ##보안폴더
+from utils.secure import SecureFolderManager  ##보안폴더
 
 global GLOBAL_CURRENT_PATH
 

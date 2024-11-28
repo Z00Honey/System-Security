@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame
 from widgets.file_list import FileList
 from widgets.file_information import FileInformation
+from utils.secure import SecureFolderManager
 
 class FileArea(QWidget):
     def __init__(self, parent=None, secure_manager=None):

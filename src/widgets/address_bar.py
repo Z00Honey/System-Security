@@ -4,6 +4,7 @@ from widgets.navigation import NavigationWidget
 from widgets.path import PathBar
 from widgets.search import SearchBar
 from utils.load import load_stylesheet
+from utils.secure import SecureFolderManager
 
 class AddressBar(QWidget):
     def __init__(self, parent=None, secure_manager=None):  # 보안 객체 추가

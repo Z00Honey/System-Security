@@ -1,22 +1,442 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, 
-    QLabel, QLineEdit, QPushButton,
-    QProgressDialog, QMessageBox, QApplication,
-    QCheckBox, QDialogButtonBox)
-from PyQt5.QtCore import Qt, QTimer
-import re
+    QApplication, QProgressDialog, QMessageBox, 
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+    QLineEdit, QPushButton, QCheckBox, QDialogButtonBox
+)
+from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt5.QtGui import QFont
+import os
 import sys
-import smtplib
-import random
-from email.mime.text import MIMEText
+import shutil
+import subprocess
 import ctypes
 from ctypes import c_char_p, POINTER, c_ubyte, c_int
-import os
+import uuid
+import smtplib
+from email.mime.text import MIMEText
 import json
+import re
 import stat
-from .Thread import TaskRunner
 
 
+class SecureFolderManager:
+    def __init__(self):
+        # 보안 폴더 경로 설정
+        self.folder_name = "SystemUtilities"  # 폴더 이름 복원
+        self.secure_folder_path = os.path.join(
+            os.path.expanduser("~"),
+            "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", self.folder_name
+        )
+        self.authenticated = False  # 인증 여부를 저장하는 변수
+        self.pwd_mgr = PasswordManager()  # PasswordManager 인스턴스 생성
+        self.AES_mgr = AESManager()
+        self.mapping_mgr = MappingManager()
+
+        # 보안 폴더가 없으면 생성
+        if not os.path.exists(self.secure_folder_path):
+            os.makedirs(self.secure_folder_path)  # 보안 폴더 생성
+            self._hide_folder(self.secure_folder_path)  # 폴더 숨김 처리
+            
+
+    def _hide_folder(self, folder_path):
+        # 폴더 숨김 처리
+        if os.name == 'nt':  # Windows 환경에서만 작동
+            try:
+                subprocess.run(['attrib', '+h', folder_path], check=True)
+                print(f"Folder '{folder_path}' is now hidden.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to hide folder: {e}")
+    
+    #################################################인증↓↓↓↓
+    def authenticate(self):
+        if not self.pwd_mgr.setup:
+            self.pwd_mgr.set_initial_password()
+            return
+
+        dialog = QDialog()
+        dialog.setWindowTitle("보안폴더접근")
+        dialog.setFixedSize(400, 200)
+        
+        layout = QVBoxLayout()
+
+        # 비밀번호 입력 레이블 및 입력 필드
+        label = QLabel("비밀번호 입력:")
+        label_font = QFont("Arial", 12)
+        label.setFont(label_font)
+        password_input = QLineEdit()
+        password_input.setEchoMode(QLineEdit.Password)
+        password_input.setFont(QFont("Arial", 12))
+        
+        # 버튼 레이아웃
+        button_layout = QHBoxLayout()
+        temp_auth_button = QPushButton("임시인증 하기")
+        temp_auth_button.setFont(QFont("Arial", 10))
+        temp_auth_button.clicked.connect(lambda: self.temp_auth(dialog))
+        cancel_button = QPushButton("취소")
+        cancel_button.setFont(QFont("Arial", 10))
+        confirm_button = QPushButton("확인")
+        confirm_button.setFont(QFont("Arial", 10))
+        confirm_button.setDefault(True)  # "확인" 버튼을 기본으로 설정
+        
+        # 버튼 클릭 이벤트 연결
+        cancel_button.clicked.connect(dialog.reject)
+        confirm_button.clicked.connect(lambda: self.verify_password(password_input.text(), dialog))
+        
+        button_layout.addWidget(temp_auth_button)
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(confirm_button)
+        
+        # 레이아웃 설정
+        layout.addWidget(label)
+        layout.addWidget(password_input)
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        if dialog.exec_() == QDialog.Accepted:
+            self.authenticated = True
+            return True
+        return False
+
+    def verify_password(self, password, dialog):
+        if self.pwd_mgr.authenticate_user(password):
+            dialog.accept()
+        else:
+            QMessageBox.warning(dialog, "인증 실패", "비밀번호가 일치하지 않습니다.")
+
+
+    def temp_auth(self, dialog):
+        # 이메일 인증 코드 전송
+        self.pwd_mgr.send_verification_code()
+        verification_dialog = QDialog()
+        verification_dialog.setWindowTitle("인증 코드 확인")
+        verification_dialog.setFixedSize(400, 150)
+        
+        layout = QVBoxLayout()
+
+        # 인증 코드 입력 필드
+        label = QLabel("인증 코드를 입력하세요:")
+        label_font = QFont("Arial", 12)
+        label.setFont(label_font)
+        verification_code_input = QLineEdit()
+        verification_code_input.setFont(QFont("Arial", 12))
+        
+        # 버튼 레이아웃
+        button_layout = QHBoxLayout()
+        confirm_button = QPushButton("확인")
+        confirm_button.setFont(QFont("Arial", 10))
+        cancel_button = QPushButton("취소")
+        cancel_button.setFont(QFont("Arial", 10))
+        
+        # 버튼 클릭 이벤트 연결
+        cancel_button.clicked.connect(verification_dialog.reject)
+        confirm_button.clicked.connect(lambda: self.verify_code(verification_code_input.text(), verification_dialog))
+        
+        button_layout.addWidget(confirm_button)
+        button_layout.addWidget(cancel_button)
+        
+        # 레이아웃 설정
+        layout.addWidget(label)
+        layout.addWidget(verification_code_input)
+        layout.addLayout(button_layout)
+        verification_dialog.setLayout(layout)
+
+        if verification_dialog.exec_() == QDialog.Accepted:
+            self.authenticated = True
+            dialog.accept()
+        
+            
+
+    def verify_code(self, code, dialog):
+        if code == self.pwd_mgr.correct_verification_code:
+            dialog.accept()
+        else:
+            QMessageBox.warning(dialog, "인증 실패", "인증 코드가 일치하지 않습니다.")
+    #################################################인증↑↑↑↑
+    
+    def lock(self, path):
+        # 파일 또는 폴더를 보안 폴더로 이동하고 암호화
+
+        if not os.path.exists(path):
+            raise Exception("경로가 존재하지 않습니다.")
+
+        try:
+            if os.path.isdir(path):  # 폴더 처리
+                folder_name = os.path.basename(path)
+                secure_folder = os.path.join(self.secure_folder_path, folder_name)
+
+                # 폴더 자체 이동
+                shutil.move(path, secure_folder)
+
+                # 폴더 및 파일 메타데이터 기록
+                for root, _, files in os.walk(secure_folder):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        original_path = os.path.join(path, os.path.relpath(file_path, secure_folder))
+                        self._lock_file(file_path, original_path)
+
+            else:  # 단일 파일 처리
+                # 단일 파일 이동
+                filename = os.path.basename(path)
+                secure_path = os.path.join(self.secure_folder_path, filename)
+                os.makedirs(os.path.dirname(secure_path), exist_ok=True)
+                shutil.move(path, secure_path)
+
+                # 메타데이터 기록 및 암호화
+                self._lock_file(secure_path, path)
+
+        except Exception as e:
+            raise Exception(f"파일 암호화 또는 이동 중 오류 발생: {str(e)}")
+
+    def _lock_file(self, file_path, original_path):
+        # 단일 파일을 보안 폴더로 이동하고 암호화
+        file_id = self.mapping_mgr.generate_id(original_path)  # 고유 ID 생성
+        self.mapping_mgr.mapping[file_id] = {"original_path": original_path}
+        self.mapping_mgr.save_mapping()
+
+        # 암호화 수행
+        self.AES_mgr.encrypt(file_path)
+
+    def unlock(self, path):
+        # 보안 폴더 내의 파일 또는 폴더를 원래 위치로 복원하고 복호화
+        if not os.path.exists(path):
+            raise Exception("경로가 존재하지 않습니다.")
+
+        try:
+            if os.path.isdir(path):  # 폴더 처리
+                for root, _, files in os.walk(path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        self._unlock_file(file_path)
+
+                # 보안 폴더 내 폴더 삭제
+                shutil.rmtree(path)
+
+            else:  # 단일 파일 처리
+                self._unlock_file(path)
+
+        except Exception as e:
+            raise Exception(f"파일 복호화 또는 이동 중 오류 발생: {str(e)}")
+
+    def _unlock_file(self, file_path):
+        # 단일 파일을 원래 위치로 복원하고 복호화
+        filename = os.path.basename(file_path)
+        file_id = self.mapping_mgr.get_file_id(filename)
+
+        if file_id is None:
+            raise Exception("해당 파일의 원래 경로를 찾을 수 없습니다.")
+
+        original_path = self.mapping_mgr.get_original_path(file_id)  # 원래 경로 검색
+        if original_path is None:
+            raise Exception("원래 경로를 찾을 수 없습니다.")
+
+        # 폴더 경로가 없으면 재생성
+        original_folder = os.path.dirname(original_path)
+        if not os.path.exists(original_folder):
+            os.makedirs(original_folder)
+
+        # 파일 이동 및 복호화
+        shutil.move(file_path, original_path)
+        self.AES_mgr.decrypt(original_path)  # 복호화 수행
+
+        # 매핑 정보 삭제
+        self.mapping_mgr.delete_mapping(file_id)
+        self.mapping_mgr.save_mapping()
+
+
+class TaskRunner:
+    class TaskThread(QThread):
+        # 오류 및 완료 신호 정의
+        error = pyqtSignal(str)  # 작업 중 오류 발생 시 신호
+        finished = pyqtSignal()  # 작업 완료 신호
+
+        def __init__(self, task, *args, **kwargs):
+            super().__init__()
+            self.task = task  # 실행할 작업(함수 객체)
+            self.args = args  # 함수 위치 인자
+            self.kwargs = kwargs  # 함수 키워드 인자
+
+        def run(self):
+            try:
+                # 실제 작업 실행
+                self.task(*self.args, **self.kwargs)
+                self.finished.emit()  # 완료 신호 발생
+            except Exception as e:
+                # 오류 발생 시 오류 신호 발생
+                self.error.emit(str(e))
+
+    @staticmethod
+    def run(task, *args, parent=None, **kwargs):
+        """작업을 비동기로 실행하고 모달 프로그레스 창을 표시."""
+        app = QApplication.instance() or QApplication(sys.argv)
+
+        # 대기창 설정
+        progress_dialog = QProgressDialog(parent)
+        progress_dialog.setWindowTitle("작업 중")
+        progress_dialog.setLabelText("작업을 처리하고 있습니다...")
+        progress_dialog.setCancelButton(None)  # 취소 버튼 숨기기
+        progress_dialog.setWindowModality(Qt.ApplicationModal if parent is None else Qt.WindowModal)
+        progress_dialog.setRange(0, 0)
+        progress_dialog.setAutoClose(False)
+
+        # 애니메이션 설정
+        dots = ["", ".", "..", "..."]
+        current_dot_index = 0
+
+        def update_label():
+            nonlocal current_dot_index
+            progress_dialog.setLabelText(f"작업을 처리하고 있습니다{dots[current_dot_index]}")
+            current_dot_index = (current_dot_index + 1) % len(dots)
+            QApplication.processEvents()  # UI 업데이트 강제 실행
+
+        # 타이머 설정
+        timer = QTimer()
+        timer.timeout.connect(update_label)
+        timer.start(500)
+
+        # 작업 스레드 실행
+        thread = TaskRunner.TaskThread(task, *args, **kwargs)
+
+        # 작업 완료 처리
+        thread.finished.connect(lambda: timer.stop())  # 타이머 중지
+        thread.finished.connect(progress_dialog.accept)  # 대기창 닫기
+
+        # 오류 처리
+        thread.error.connect(lambda err: QMessageBox.critical(parent, "오류", f"작업 중 오류 발생: {err}"))
+        thread.error.connect(lambda: timer.stop())  # 타이머 중지
+        thread.error.connect(progress_dialog.reject)  # 대기창 닫기
+
+        # 스레드 시작
+        thread.start()
+
+        # 모달 대기창 실행
+        progress_dialog.exec_()
+
+        # 스레드 대기
+        thread.wait()
+        thread.deleteLater()
+
+class AESManager:
+    def __init__(self):
+        # AES DLL 로드
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        dll_folder = os.path.join(current_dir, "../dll")
+        dll_path = os.path.abspath(os.path.join(dll_folder, "aes.dll"))
+        self.AES = ctypes.CDLL(dll_path)
+
+        self.AES.aes_cbc_encrypt.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte)]
+        self.AES.aes_cbc_encrypt.restype = ctypes.c_int
+
+        self.AES.aes_cbc_decrypt.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte)]
+        self.AES.aes_cbc_decrypt.restype = ctypes.c_int
+
+
+        # PasswordManager 객체 생성 및 자동 설정 로드
+        self.pm = PasswordManager()  # 객체 이름을 짧게 변경
+
+    def enc_data(self, data):
+        # 데이터 암호화
+        if self.pm.AESkey is None:
+            raise ValueError("AES 키가 설정되지 않았습니다.")
+        key = self.pm.AESkey
+        encrypted = (ctypes.c_ubyte * (len(data) + 16))()  # IV(16바이트) + 암호문
+        key_c = (ctypes.c_ubyte * len(key)).from_buffer_copy(key)
+        input_data = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
+
+        result = self.AES.aes_cbc_encrypt(key_c, input_data, len(data), encrypted)
+        if result != 0:
+            raise RuntimeError("Encryption failed")
+        return bytes(encrypted)
+
+    def dec_data(self, data):
+        # 데이터 복호화
+        if self.pm.AESkey is None:
+            raise ValueError("AES 키가 설정되지 않았습니다.")
+        key = self.pm.AESkey
+        decrypted = (ctypes.c_ubyte * (len(data) - 16))()  # 암호문에서 IV 제거
+        key_c = (ctypes.c_ubyte * len(key)).from_buffer_copy(key)
+        input_data = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
+
+        result = self.AES.aes_cbc_decrypt(key_c, input_data, len(data), decrypted)
+        if result != 0:
+            raise RuntimeError("Decryption failed")
+        return bytes(decrypted)
+
+    def enc_file(self, path):
+        # 파일 암호화
+        with open(path, 'rb+') as f:
+            data = f.read()
+            pad_len = 16 - (len(data) % 16)  # PKCS7 패딩 추가
+            data += bytes([pad_len] * pad_len)
+            encrypted = self.enc_data(data)
+            f.seek(0)
+            f.truncate()
+            f.write(encrypted)
+
+    def dec_file(self, path):
+        # 파일 복호화
+        with open(path, 'rb+') as f:
+            data = f.read()
+            decrypted_padded = self.dec_data(data)
+            pad_len = decrypted_padded[-1]
+            decrypted = decrypted_padded[:-pad_len]  # 패딩 제거
+            f.seek(0)
+            f.truncate()
+            f.write(decrypted)
+
+    def enc_folder(self, path):
+        # 폴더 내 모든 파일 암호화
+        for root, _, files in os.walk(path):
+            for file in files:
+                self.enc_file(os.path.join(root, file))
+
+    def dec_folder(self, path):
+        # 폴더 내 모든 파일 복호화
+        try:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    self.dec_file(os.path.join(root, file))
+
+                # 빈 폴더 처리
+                if not files and not dirs:
+                    print(f"빈 폴더 처리: {root}")  # 디버그 메시지
+                    continue  # 빈 폴더는 복호화 작업이 필요 없음
+        except Exception as e:
+            QMessageBox.critical(None, "복호화 오류", f"빈 폴더 처리 중 오류 발생: {e}")
+
+    def encrypt(self, path):
+        # 경로를 자동으로 판단하여 파일 또는 폴더 암호화
+        try:
+            if not os.path.exists(path):
+                QMessageBox.warning(None, "경고", "암호화할 파일이나 폴더가 존재하지 않습니다.")
+                return
+
+            if os.path.isdir(path):
+                self.enc_folder(path)
+            elif os.path.isfile(path):
+                self.enc_file(path)
+            else:
+                QMessageBox.warning(None, "경고", f"유효하지 않은 경로입니다: {path}")
+        except Exception as e:
+            QMessageBox.critical(None, "암호화 오류", f"암호화 작업 중 오류 발생: {e}")
+
+    def decrypt(self, path):
+        # 경로를 자동으로 판단하여 파일 또는 폴더 복호화
+        try:
+            if not os.path.exists(path):
+                QMessageBox.warning(None, "경고", "복호화할 파일이나 폴더가 존재하지 않습니다.")
+                return
+
+            if os.path.isdir(path):
+                self.dec_folder(path)
+            elif os.path.isfile(path):
+                self.dec_file(path)
+            else:
+                QMessageBox.warning(None, "경고", f"유효하지 않은 경로입니다: {path}")
+        except Exception as e:
+            QMessageBox.critical(None, "복호화 오류", f"복호화 작업 중 오류 발생: {e}")
+
+    
 class PasswordManager:
     _instance = None
     
@@ -490,3 +910,46 @@ class PasswordManager:
         aes_manager = AESManager()
         aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
         aes_manager.decrypt(path)
+
+
+class MappingManager:
+    def __init__(self):
+        # 매핑 데이터를 저장할 파일 설정
+        self.mapping_file = os.path.join(os.path.dirname(__file__), "meta.json")
+        self.mapping = self.load_mapping()
+
+    def load_mapping(self):
+        # 메타데이터 로드
+        if os.path.exists(self.mapping_file):
+            with open(self.mapping_file, "r") as f:
+                return json.load(f)
+        return {}
+
+    def save_mapping(self):
+        # 메타데이터 저장
+        with open(self.mapping_file, "w") as f:
+            json.dump(self.mapping, f, indent=4)
+
+    def generate_id(self, path):
+        # 고유 ID 생성 및 매핑 저장
+        file_id = str(uuid.uuid4())
+        self.mapping[file_id] = {"original_path": path}
+        self.save_mapping()
+        return file_id
+
+    def get_original_path(self, file_id):
+        # ID를 통해 원래 경로 검색
+        return self.mapping.get(file_id, {}).get("original_path")
+
+    def get_file_id(self, filename):
+        # 파일 이름을 통해 ID 검색
+        for file_id, info in self.mapping.items():
+            if os.path.basename(info["original_path"]) == filename:
+                return file_id
+        return None
+
+    def delete_mapping(self, file_id):
+        # ID 매핑 삭제
+        if file_id in self.mapping:
+            del self.mapping[file_id]
+            self.save_mapping()
