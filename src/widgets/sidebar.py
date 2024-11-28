@@ -6,7 +6,7 @@ from utils.load import load_stylesheet, image_base_path
 from widgets.file_directory import FileDirectory
 
 class Sidebar(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, secure_manager=None):
         super().__init__(parent)
 
         self.layout = QVBoxLayout()
@@ -15,7 +15,7 @@ class Sidebar(QWidget):
         self.layout.setSpacing(0)
         
         # 파일 디렉토리 바 추가
-        self.file_directory = FileDirectory(self) 
+        self.file_directory = FileDirectory(self, secure_manager=secure_manager)  # secure_manager 전달
         self.layout.addWidget(self.file_directory)
 
         spacer = QWidget()
@@ -25,9 +25,14 @@ class Sidebar(QWidget):
         self.add_horizontal_separator()
 
         # 보안 폴더 버튼
-        self.settings_button = QPushButton("보안 폴더")
-        self.add_icon_to_button(self.settings_button, "locked-folder.png")
-        self.layout.addWidget(self.settings_button)
+        self.security_folder_button = QPushButton("보안 폴더")
+        self.add_icon_to_button(self.security_folder_button, "locked-folder.png")
+        self.layout.addWidget(self.security_folder_button)
+
+        # === 추가된 부분 ===
+        # 보안 폴더 버튼 클릭 시 go_to_secure_folder 메서드 호출
+        self.security_folder_button.clicked.connect(self.go_to_secure_folder)
+        # === 추가된 부분 끝 ===
 
         self.add_horizontal_separator()
 
@@ -59,7 +64,6 @@ class Sidebar(QWidget):
         self.setLayout(self.layout)
         self.setStyleSheet(load_stylesheet("sidebar.css")) 
         self.setObjectName("sidebar")
-        self.setObjectName("file_directory")
 
     def add_horizontal_separator(self):
         line_separator = QFrame(self)
@@ -74,3 +78,10 @@ class Sidebar(QWidget):
         button.setIconSize(QSize(20, 20)) 
         button.setText(f" {button.text()}")  
         button.setFixedHeight(40)
+
+    # === 추가된 부분 ===
+    # 보안 폴더로 이동하는 메서드
+    def go_to_secure_folder(self):
+        # FileDirectory에서 go_to_secure_folder 메서드 호출
+        self.file_directory.go_to_secure_folder()
+    # === 추가된 부분 끝 ===
