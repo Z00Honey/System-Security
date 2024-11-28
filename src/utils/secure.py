@@ -10,6 +10,7 @@ import sys
 import shutil
 import subprocess
 import ctypes
+import random
 from ctypes import c_char_p, POINTER, c_ubyte, c_int
 import uuid
 import smtplib
@@ -17,7 +18,6 @@ from email.mime.text import MIMEText
 import json
 import re
 import stat
-
 
 class SecureFolderManager:
     def __init__(self):
@@ -459,7 +459,7 @@ class PasswordManager:
         self.correct_verification_code = None
         self.timer = None
         self.remaining_time = 0
-        self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "setting/config.json")
         self.secure_folder_path = os.path.join(
             os.path.expanduser("~"),
             "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "SystemUtilities"
@@ -635,7 +635,7 @@ class PasswordManager:
             QMessageBox.warning(dialog, "오류", "솔트 암호화에 실패했습니다.")
             return
         encrypted_text = bytes(cipher_buffer)
-        with open(os.path.join(os.path.dirname(__file__), "encrypted_data.bin"), "wb") as f:
+        with open(os.path.join(os.path.dirname(__file__), "setting/encrypted_data.bin"), "wb") as f:
             f.write(encrypted_text)
 
         # 비밀번호와 솔트 결합 후 해싱
@@ -734,8 +734,8 @@ class PasswordManager:
     #설정 정보를 파일에서 불러오는 함수
     def load_config(self):
         # 저장된 암호문(솔트) 불러오기 및 복호화
-        if os.path.exists(os.path.join(os.path.dirname(__file__), "encrypted_data.bin")):
-            with open(os.path.join(os.path.dirname(__file__), "encrypted_data.bin"), "rb") as f:
+        if os.path.exists(os.path.join(os.path.dirname(__file__), "setting/encrypted_data.bin")):
+            with open(os.path.join(os.path.dirname(__file__), "setting/encrypted_data.bin"), "rb") as f:
                 loaded_ciphertext = f.read()
             loaded_ciphertext_length = len(loaded_ciphertext)
             loaded_ciphertext_buffer = (c_ubyte * loaded_ciphertext_length).from_buffer_copy(loaded_ciphertext)
@@ -852,7 +852,7 @@ class PasswordManager:
                     os.remove(self.config_file)
 
                 # 암호화된 데이터 파일 삭제
-                encrypted_data_path = os.path.join(os.path.dirname(__file__), "encrypted_data.bin")
+                encrypted_data_path = os.path.join(os.path.dirname(__file__), "setting/encrypted_data.bin")
                 if os.path.exists(encrypted_data_path):
                     os.remove(encrypted_data_path)
 
