@@ -16,7 +16,7 @@ class AddressBar(QWidget):
         self.layout.setSpacing(0)
 
         # NavigationWidget 생성 및 보안 객체 전달
-        self.navigation_widget = NavigationWidget(secure_manager=self.secure_manager)
+        self.navigation_widget = NavigationWidget(window=parent, secure_manager=self.secure_manager)
         self.layout.addWidget(self.navigation_widget, 1)
         self.add_line_separator()
 
@@ -26,7 +26,7 @@ class AddressBar(QWidget):
         self.add_line_separator()
 
         # SearchBar 생성 및 보안 객체 전달
-        self.search_bar = SearchBar()
+        self.search_bar = SearchBar(parent)
         self.layout.addWidget(self.search_bar, 1)
 
         self.setLayout(self.layout)

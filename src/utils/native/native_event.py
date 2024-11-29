@@ -63,7 +63,6 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
 
             for tab in tabs:
                 if point is tab:
-                    print("TabWidgetState.HOVER")
                     widget.title_bar.newtab_widget.setState(TabWidgetState.HOVER, tab)
                 else:
                     widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, tab)

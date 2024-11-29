@@ -15,6 +15,7 @@ import os
 class ToolBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent = parent
 
         # Load environment variables from .env file
         load_dotenv()
@@ -58,6 +59,10 @@ class ToolBar(QWidget):
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             self.layout.addWidget(button)
 
+            if info["name"] in ["copy", "paste", "cut"]:
+                event = getattr(self, f'file_{info["name"]}')
+                button.clicked.connect(event)
+
             if info.get("menu") and info["name"] == "shield":
                 menu = QMenu(button)
 
@@ -73,6 +78,18 @@ class ToolBar(QWidget):
                 button.setMenu(menu)
 
             self.layout.addWidget(button)
+
+    def file_copy(self):
+        self.parent.file_event('copy')
+
+    def file_cut(self):
+        self.parent.file_event('cut')
+
+    def file_paste(self):
+        self.parent.file_event('paste')
+
+    def file_delete(self):
+        self.parent.file_event('delete')
 
     def run_extension_check(self):
         # MainWindow 인스턴스 찾기
