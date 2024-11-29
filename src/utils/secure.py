@@ -22,11 +22,10 @@ import stat
 class SecureFolderManager:
     def __init__(self):
         # 보안 폴더 경로 설정
-        self.folder_name = "SystemUtilities"  # 폴더 이름 복원
-        self.secure_folder_path = os.path.join(
-            os.path.expanduser("~"),
-            "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", self.folder_name
-        )
+        self.folder_name = "asset"  # 폴더 이름 복원
+        self.secure_folder_path = os.path.join(os.path.expanduser("~"), "Documents", self.folder_name)
+
+
         self.authenticated = False  # 인증 여부를 저장하는 변수
         self.pwd_mgr = PasswordManager()  # PasswordManager 인스턴스 생성
         self.AES_mgr = AESManager()
@@ -460,10 +459,9 @@ class PasswordManager:
         self.timer = None
         self.remaining_time = 0
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "setting/config.json")
-        self.secure_folder_path = os.path.join(
-            os.path.expanduser("~"),
-            "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "SystemUtilities"
-        )
+        self.secure_folder_path = os.path.join(os.path.expanduser("~"), "Documents", "asset")
+
+
 
         #################################################DLL설정↓↓↓↓
         # DLL 로드 및 해시 함수 정의 (세 개의 인자 받도록 수정)
@@ -895,7 +893,7 @@ class PasswordManager:
             raise ValueError("AES 키가 설정되지 않았습니다. 초기화를 먼저 수행하세요.")
 
         # AESManager를 동적으로 임포트하고 생성
-        from .ProcessAES import AESManager
+        
         aes_manager = AESManager()
         aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
         aes_manager.encrypt(path)
@@ -906,7 +904,7 @@ class PasswordManager:
             raise ValueError("AES 키가 설정되지 않았습니다. 초기화를 먼저 수행하세요.")
 
         # AESManager를 동적으로 임포트하고 생성
-        from .ProcessAES import AESManager
+        
         aes_manager = AESManager()
         aes_manager.pm = self  # AESManager에 PasswordManager 자신을 전달
         aes_manager.decrypt(path)
@@ -915,7 +913,7 @@ class PasswordManager:
 class MappingManager:
     def __init__(self):
         # 매핑 데이터를 저장할 파일 설정
-        self.mapping_file = os.path.join(os.path.dirname(__file__), "meta.json")
+        self.mapping_file = os.path.join(os.path.dirname(__file__), "setting/meta.json")
         self.mapping = self.load_mapping()
 
     def load_mapping(self):

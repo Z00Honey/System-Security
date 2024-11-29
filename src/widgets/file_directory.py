@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFrame, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFrame, QMessageBox  # 수정: QMessageBox 임포트 추가
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
@@ -126,4 +126,15 @@ class FileDirectory(QWidget):
     # 추가된 보안 폴더로 이동하는 메서드
     def go_to_secure_folder(self):
         self.navigate_to(self.secure_manager.secure_folder_path)
-        
+
+    # === 추가된 부분 ===
+    # 초기화 메서드 (비밀번호 초기화)
+    def reset(self):
+        if self.secure_manager.authenticated:  # 보안 폴더에 접근한 경우에만 초기화 처리
+            self.secure_manager.pwd_mgr.reset()  # 비밀번호 관리 초기화
+            # QMessageBox.information(self, "초기화 완료", "비밀번호가 초기화되었습니다.")  # 수정: 초기화 완료 메시지 제거
+        else:
+            # 보안 폴더에 접근하지 않은 경우, 경고 메시지
+            QMessageBox.warning(self, "보안 폴더 접근", "먼저 보안 폴더에 접근해 주세요.")
+            self.go_to_secure_folder()  # 보안 폴더로 이동
+    # === 추가된 부분 끝 ===

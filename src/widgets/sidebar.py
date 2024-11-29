@@ -1,10 +1,9 @@
 import win32api
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFrame, QLabel, QHBoxLayout, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFrame, QLabel, QHBoxLayout, QSizePolicy, QMessageBox  # 수정: QMessageBox 임포트 추가
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
 from widgets.file_directory import FileDirectory
-from utils.secure import SecureFolderManager
 
 class Sidebar(QWidget):
     def __init__(self, parent=None, secure_manager=None):
@@ -41,6 +40,11 @@ class Sidebar(QWidget):
         self.settings_button = QPushButton("초기화")
         self.add_icon_to_button(self.settings_button, "setting.png")
         self.layout.addWidget(self.settings_button)
+
+        # === 수정된 부분 ===
+        # 초기화 버튼 클릭 시, FileDirectory의 reset 메서드 호출
+        self.settings_button.clicked.connect(self.on_reset_button_click)
+        # === 수정된 부분 끝 ===
 
         self.add_horizontal_separator()
 
@@ -85,4 +89,9 @@ class Sidebar(QWidget):
     def go_to_secure_folder(self):
         # FileDirectory에서 go_to_secure_folder 메서드 호출
         self.file_directory.go_to_secure_folder()
-    # === 추가된 부분 끝 ===
+
+    # 초기화 버튼 클릭 시 실행되는 메서드
+    def on_reset_button_click(self):
+        # 초기화 버튼 클릭 시 FileDirectory의 reset() 메서드를 호출
+        self.file_directory.reset()
+    # === 수정된 부분 끝 ===
