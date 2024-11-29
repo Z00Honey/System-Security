@@ -11,8 +11,8 @@ from PyQt5.QtGui import QMouseEvent
 from utils.native.util import isMaximized, isFullScreen
 from utils.native.c_structure import LPNCCALCSIZE_PARAMS
 
-from widgets.title_bar import MaximizeButtonState
-from widgets.tabs import TabWidgetState
+from widgets.titlebar.title_bar import MaximizeButtonState
+from widgets.titlebar.tabs import TabWidgetState
 
 def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
     msg = ctypes.wintypes.MSG.from_address(message.__int__())

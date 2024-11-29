@@ -5,7 +5,7 @@ from PyQt5.QtGui import QIcon, QPalette, QColor
 from enum import IntEnum, auto, Enum
 
 from utils.load import load_stylesheet, image_base_path
-from widgets.tabs import WidgetNewTab
+from widgets.titlebar.tabs import WidgetNewTab
 
 class MaximizeButtonState(IntEnum):
     HOVER = auto()

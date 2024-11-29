@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame
 from widgets.file_area import FileArea
-from widgets.sidebar import Sidebar
+from widgets.titlebar.sidebar import Sidebar
 from utils.secure import SecureFolderManager
 
 class FileExplorerBar(QWidget):

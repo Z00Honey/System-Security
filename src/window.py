@@ -2,9 +2,9 @@ from screeninfo import get_monitors
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QFrame
 from PyQt5.QtGui import QShowEvent, QRegion, QPainterPath
 from PyQt5.QtCore import Qt, QByteArray, QSize, QRectF, QEvent
-from widgets.title_bar import WidgetTitleBar
+from widgets.titlebar.title_bar import WidgetTitleBar
 from widgets.address_bar import AddressBar
-from widgets.tool_bar import ToolBar
+from widgets.titlebar.tool_bar import ToolBar
 from widgets.file_explorer_bar import FileExplorerBar
 
 from utils.native.util import setWindowNonResizable, isWindowResizable
