@@ -125,7 +125,7 @@ class Everything:
         Loads the EveryThing library into the address space of the calling process.
         :param dll: EveryThing SDK ('SDK\dll\Everything(32|64).dll')
         """
-        dll = dll or r'..\src\dll\FileSearchx{}.dll'
+        dll = dll or r'..\src\dll\FileSearchx{}.dll' \
             .format(8*calcsize('P'))
 
         self.dll = ctypes.WinDLL(dll)

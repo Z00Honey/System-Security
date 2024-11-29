@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
         super().resizeEvent(e)
         self.title_bar.resize(self.width(), self.title_bar.height())
 
-    self.title_bar.resize(self.width(), self.title_bar.height())
+        self.title_bar.resize(self.width(), self.title_bar.height())
 
     def show_file_list(self) -> None:
         self.file_explorer_bar.file_area.show_file_list()
