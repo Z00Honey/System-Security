@@ -125,7 +125,7 @@ class Everything:
         Loads the EveryThing library into the address space of the calling process.
         :param dll: EveryThing SDK ('SDK\dll\Everything(32|64).dll')
         """
-        dll = dll or r'..\src\dll\FileSearchx{}.dll'
+        dll = dll or r'..\dll\Everything{}.dll'\
             .format(8*calcsize('P'))
 
         self.dll = ctypes.WinDLL(dll)
@@ -215,13 +215,18 @@ class Everything:
         """
         return Error(self.GetLastError())
     
-def file_search(directory, filename):
+def file_search(filename):
     everything = Everything()
-    everything.set_search(fr"path:{directory}\ {filename}")
+    everything.set_search(filename)
     everything.set_request_flags(Request.FullPathAndFileName|Request.DateModified|Request.Size)
 
     if not everything.query():
         raise Exception(everything.get_last_error())
     
     for item in everything:
-        yield item.get_filename()
+        print(
+            item.get_filename(),
+            f'Size: {item.get_size()} Bytes',
+            f'Modified date: {item.get_date_modified()}',
+            '', sep='\n'
+        )

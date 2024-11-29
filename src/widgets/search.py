@@ -3,7 +3,6 @@ from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
 from os.path import join
-from .file_search import file_search
 from . import global_variable
 
 class SearchBar(QWidget):
