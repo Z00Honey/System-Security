@@ -3,21 +3,20 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QCheckBox, QDialogButtonBox
 )
+from ctypes import c_char_p, POINTER, c_ubyte, c_int
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
+from email.mime.text import MIMEText
 from PyQt5.QtGui import QFont
-import os
-import sys
-import shutil
 import subprocess
+import shutil
 import ctypes
 import random
-from ctypes import c_char_p, POINTER, c_ubyte, c_int
-import uuid
 import smtplib
-from email.mime.text import MIMEText
+import uuid
 import json
+import sys
 import re
-import stat
+import os
 
 class SecureFolderManager:
     def __init__(self):

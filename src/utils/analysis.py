@@ -1,11 +1,11 @@
-from ctypes import cdll, c_char_p, c_int, create_string_buffer
-import os
-import sys
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import  QThread, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication, QMessageBox, QFileDialog, QPushButton,
-    QVBoxLayout, QWidget, QProgressBar, QLabel, QHBoxLayout
+    QVBoxLayout, QWidget, QProgressBar, QLabel
 )
+from ctypes import cdll, c_char_p, c_int, create_string_buffer
+import sys
+import os
 
 # 파일 분석을 위한 Worker 스레드 정의
 class AnalyzerThread(QThread):

@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QFile, QTextStream
-import os, sys
+import os
 
 def image_base_path(filename):
     return os.path.join(os.getcwd() + "\\assets\\images\\", filename)

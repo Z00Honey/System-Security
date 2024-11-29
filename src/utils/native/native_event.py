@@ -11,8 +11,8 @@ from PyQt5.QtGui import QMouseEvent
 from utils.native.util import isMaximized, isFullScreen
 from utils.native.c_structure import LPNCCALCSIZE_PARAMS
 
-from widgets.titlebar.title_bar import MaximizeButtonState
-from widgets.titlebar.tabs import TabWidgetState
+from widgets.bar.title.title import MaximizeButtonState
+from widgets.bar.title.tabs import TabWidgetState
 
 def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
     msg = ctypes.wintypes.MSG.from_address(message.__int__())
@@ -57,19 +57,19 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
             widget.title_bar.MAXIMIZE_BUTTON.setState(MaximizeButtonState.HOVER)
             return True, win32con.HTMAXBUTTON
         
-        if (point := widget.childAt(QPoint(x,y))) in widget.title_bar.newtab_widget.tabs:
+        if (point := widget.childAt(QPoint(x,y))) in widget.title_bar.new_tab_widget.tabs:
 
-            tabs = widget.title_bar.newtab_widget.tabs
+            tabs = widget.title_bar.new_tab_widget.tabs
 
             for tab in tabs:
                 if point is tab:
-                    widget.title_bar.newtab_widget.setState(TabWidgetState.HOVER, tab)
+                    widget.title_bar.new_tab_widget.setState(TabWidgetState.HOVER, tab)
                 else:
-                    widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, tab)
+                    widget.title_bar.new_tab_widget.setState(TabWidgetState.NORMAL, tab)
         
-        for tab in widget.title_bar.newtab_widget.tabs:
+        for tab in widget.title_bar.new_tab_widget.tabs:
             if widget.childAt(QPoint(x,y)) is tab.findChild(QPushButton):
-                widget.title_bar.newtab_widget.setState(TabWidgetState.HOVER, tab)
+                widget.title_bar.new_tab_widget.setState(TabWidgetState.HOVER, tab)
             
         if widget.childAt(x, y) not in widget.title_bar.findChildren(QPushButton):
             if borderHeight < y < widget.title_bar.height():
@@ -77,12 +77,12 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
 
     elif msg.message in [0x2A2, win32con.WM_MOUSELEAVE]:
         widget.title_bar.MAXIMIZE_BUTTON.setState(MaximizeButtonState.NORMAL)
-        # if not ((point := widget.childAt(QPoint(x,y))) in widget.title_bar.newtab_widget.tabs):
-        #     for tab in widget.title_bar.newtab_widget.tabs:
+        # if not ((point := widget.childAt(QPoint(x,y))) in widget.title_bar.new_tab_widget.tabs):
+        #     for tab in widget.title_bar.new_tab_widget.tabs:
         #         if not widget.childAt(QPoint(x,y)) is tab.findChild(QPushButton):
         #             if point is tab:
-        #                 widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, None)
-        widget.title_bar.newtab_widget.setState(TabWidgetState.NORMAL, None)
+        #                 widget.title_bar.new_tab_widget.setState(TabWidgetState.NORMAL, None)
+        widget.title_bar.new_tab_widget.setState(TabWidgetState.NORMAL, None)
         # Tlqkf
                 
 
