@@ -7,8 +7,9 @@ import os
 from utils.secure import SecureFolderManager
 
 class NavigationWidget(QWidget):
-    def __init__(self, parent=None, secure_manager=None):  # 보안 객체 추가
+    def __init__(self, parent=None, window=None, secure_manager=None):  # 보안 객체 추가
         super().__init__(parent)
+        self.window = window
         self.secure_manager = secure_manager  # 보안 객체 저장
 
         self.layout = QHBoxLayout()
@@ -135,10 +136,15 @@ class NavigationWidget(QWidget):
                 self.update_button_states()
 
     def refresh(self):
-        file_list = self.get_file_list()
-        if file_list:
-            current_path = file_list.get_current_path()
-            file_list.set_current_path(current_path)
+        status = self.window.get_status_tree_view()
+        print(status)
+
+        if status == 2: # file list show
+            self.window.show_file_list()
+            file_list = self.get_file_list()
+            if file_list:
+                current_path = file_list.get_current_path()
+                file_list.set_current_path(current_path)
 
     def add_to_history(self, path):
         # 현재 위치 이후의 기록 삭제

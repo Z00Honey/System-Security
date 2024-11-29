@@ -20,7 +20,7 @@ class FileExplorerBar(QWidget):
         self.add_horizontal_separator()
 
         # FileArea에 secure_manager 전달
-        self.file_area = FileArea(self, secure_manager=self.secure_manager)
+        self.file_area = FileArea(self, window=parent, secure_manager=self.secure_manager)
         self.layout.addWidget(self.file_area)
 
         self.setLayout(self.layout)
