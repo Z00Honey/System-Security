@@ -20,8 +20,8 @@ def _nativeEvent(widget: QWidget, event_type: QByteArray, message: int):
     pt = POINT()
     ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
     r = widget.devicePixelRatioF()
-    x = pt.x / r - widget.x()
-    y = pt.y / r - widget.y()
+    x = int(pt.x / r - widget.x())
+    y = int(pt.y / r - widget.y())
 
     user32 = ctypes.windll.user32
     dpi = user32.GetDpiForWindow(msg.hWnd)
