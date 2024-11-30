@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         self.add_horizontal_separator()
 
         # Add tool bar
-        self.tool_bar = ToolBar(self)
+        self.tool_bar = ToolBar(self, secure_manager=self.secure_manager)
         self.layout.addWidget(self.tool_bar)
         self.add_horizontal_separator()
 

@@ -9,22 +9,24 @@ from utils.analysis import analyze_file
 from utils.virus_scan import VirusScanThread
 from dotenv import load_dotenv
 import os
-
+from utils.secure import TaskRunner
 
 class ToolBar(QWidget):
     """
     파일 작업 및 보안 검사를 위한 버튼들을 포함한 툴바 위젯입니다.
     """
 
-    def __init__(self, parent: QWidget = None) -> None:
+    def __init__(self, parent: QWidget = None, secure_manager=None) -> None:
         """
         ToolBar 위젯을 초기화합니다.
 
         Args:
             parent (QWidget, optional): 부모 위젯입니다. 기본값은 None입니다.
+            secure_manager (optional): 보안 폴더 관리 객체입니다.
         """
         super().__init__(parent)
         self.parent = parent
+        self.secure_manager = secure_manager  # 보안 객체 저장
 
         # .env 파일에서 환경 변수를 로드합니다.
         load_dotenv()
@@ -53,6 +55,7 @@ class ToolBar(QWidget):
             {"name": "rename", "icon": "rename.png"},
             {"name": "delete", "icon": "delete.png"},
             {"name": "shield", "icon": "shield.png", "menu": True},
+            {"name": "lock", "icon": "lock.png"},  # 잠금 해제 버튼 추가
         ]
 
         for info in button_info:
@@ -70,6 +73,10 @@ class ToolBar(QWidget):
                 menu = self.create_shield_menu()
                 button.setMenu(menu)
 
+            # 잠금 버튼의 이벤트 처리
+            if info["name"] == "lock":
+                button.clicked.connect(self.toggle_lock)
+
     def get_icon_size(self, name: str) -> QSize:
         """
         버튼 이름에 따라 적절한 아이콘 크기를 반환합니다.
@@ -86,6 +93,59 @@ class ToolBar(QWidget):
             return QSize(32, 32)
         else:
             return QSize(28, 28)
+
+    def toggle_lock(self) -> None:
+        """
+        잠금/해제 상태를 토글하는 함수입니다.
+        self.secure_manager.authenticated 값을 확인하여 
+        파일이나 폴더의 잠금을 처리합니다.
+        """
+        main_window = self.window()
+        file_list = main_window.file_explorer_bar.file_area.file_list
+        current_index = file_list.tree_view.currentIndex()
+
+        if not current_index.isValid():
+            self.show_warning_message("경고", "파일 또는 폴더를 선택해주세요.")
+            return
+
+        file_path = file_list.model.filePath(current_index)
+        
+        size_in_bytes = self.get_size(file_path)
+        if self.secure_manager.pwd_mgr.AESkey is None:  # None으로 체크
+            QMessageBox.warning(self, "Error", "AES 키가 설정되지 않았습니다.")
+            return  # 키가 없으면 더 이상 실행하지 않음
+        
+        size_limit = 5 * 1024**3  # 5GB
+        if size_in_bytes > size_limit:
+            QMessageBox.warning(self, "Error", "파일 또는 폴더 크기가 5GB를 초과하여 작업을 수행할 수 없습니다.")
+            return  # 크기 초과 시 실행 중단
+
+        # 인증 여부 확인
+        if not self.secure_manager.authenticated:
+            # 잠금 메시지창
+            reply = QMessageBox.question(
+                self, "잠금", "해당 폴더(파일)를 잠금 처리 하시겠습니까?",
+                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    TaskRunner.run(self.secure_manager.lock, file_path)
+                    QMessageBox.information(self, "잠금 완료", "폴더(파일)가 성공적으로 잠금 처리되었습니다.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"잠금 중 오류 발생: {str(e)}")
+        else:
+            # 해제 메시지창
+            reply = QMessageBox.question(
+                self, "해제", "해당 폴더(파일)를 잠금 해제 하시겠습니까?",
+                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    TaskRunner.run(self.secure_manager.unlock, file_path)
+                    QMessageBox.information(self, "해제 완료", "폴더(파일)가 성공적으로 잠금 해제되었습니다.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"해제 중 오류 발생: {str(e)}")
+
 
     def create_shield_menu(self) -> QMenu:
         """
@@ -111,15 +171,15 @@ class ToolBar(QWidget):
         self.parent.file_event('copy')
 
     def file_cut(self) -> None:
-        """잘라내기 작업을 처리합니다."""
+        """잘라내기 작업을 처리합니다.""" 
         self.parent.file_event('cut')
 
     def file_paste(self) -> None:
-        """붙여넣기 작업을 처리합니다."""
+        """붙여넣기 작업을 처리합니다.""" 
         self.parent.file_event('paste')
 
     def file_delete(self) -> None:
-        """삭제 작업을 처리합니다."""
+        """삭제 작업을 처리합니다.""" 
         self.parent.file_event('delete')
 
     def run_extension_check(self) -> None:
@@ -269,3 +329,17 @@ class ToolBar(QWidget):
         """
         reply = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No)
         return reply == QMessageBox.Yes
+    def get_size(self,path):
+        """파일 또는 폴더 크기를 계산"""
+        if os.path.isfile(path):
+            return os.path.getsize(path)  # 파일 크기 반환
+        elif os.path.isdir(path):
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if not os.path.islink(file_path):
+                        total_size += os.path.getsize(file_path)
+            return total_size  # 폴더 크기 반환
+        else:
+            raise ValueError(f"Invalid path: {path} is neither a file nor a folder.")

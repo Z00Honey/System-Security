@@ -142,7 +142,7 @@ class FileDirectory(QWidget):
         if self.secure_manager and self.secure_manager.authenticated and secure_folder_path not in current_path:
             self.secure_manager.authenticated = False
             QMessageBox.information(self, "De-authenticated", "You have exited the secure folder. Authentication has been cleared.")
-            path = os.path.expanduser("~")  # Default to home directory
+            
 
         # Update file list and navigation history
         file_list = self.get_file_list()

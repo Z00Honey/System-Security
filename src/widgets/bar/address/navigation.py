@@ -138,10 +138,11 @@ class NavigationWidget(QWidget):
                 if self.secure_manager else None
             )
 
-            # 보안 폴더에서 벗어날 때 인증 해제
+            path = os.path.normpath(path)
+            # 보안 폴더에서 완전히 벗어날 때 인증 해제
             if (
                 secure_folder_path and
-                secure_folder_path not in path and
+                not path.startswith(secure_folder_path) and  # 보안 폴더 내부가 아니면 인증 해제
                 self.secure_manager.authenticated
             ):
                 self.secure_manager.authenticated = False
@@ -198,6 +199,7 @@ class NavigationWidget(QWidget):
                 os.path.normpath(self.secure_manager.secure_folder_path)
                 if self.secure_manager else None
             )
+            parent_path=os.path.normpath(parent_path)
 
             # 보안 폴더를 벗어날 때 인증 해제 및 홈 디렉토리로 이동
             if (
