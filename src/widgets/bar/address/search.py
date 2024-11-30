@@ -59,6 +59,8 @@ class SearchBar(QWidget):
         검색 버튼 클릭 시 호출되어 파일 검색을 수행합니다.
         """
         filename = self.search_input.text()
+        if not filename: ###수정
+            return
         directory = global_variable.GLOBAL_CURRENT_PATH
 
         for path in file_search(directory, filename):
