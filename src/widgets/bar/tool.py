@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QSizePolicy, QMenu,
     QAction, QMessageBox, QProgressDialog, QInputDialog,
-    QLineEdit
+    QLineEdit, QTreeView
 )
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtCore import QSize, Qt, QDir
 from utils.load import load_stylesheet, image_base_path
 from utils.analysis import analyze_file
 from utils.virus_scan import VirusScanThread
@@ -119,7 +119,7 @@ class ToolBar(QWidget):
             self.layout.addWidget(button)
 
             if info["name"] == "new_folder":
-                button.clicked.connect(self.create_new_folder)
+                button.clicked.connect(self.start_new_folder)
 
             if info["name"] in ["copy", "paste", "cut"]:
                 event = getattr(self, f'file_{info["name"]}')
@@ -230,41 +230,6 @@ class ToolBar(QWidget):
 
         return menu
     
-    def create_new_folder(self) -> None:
-        """
-        선택된 폳더 안에 새로운 폴더를 생성.
-        """
-        main_window = self.window()
-        file_list = main_window.file_explorer_bar.file_area.file_list
-        current_index = file_list.tree_view.currentIndex()
-    
-        if current_index.isValid():
-            current_path = file_list.model.filePath(current_index)
-            if not os.path.isdir(current_path):
-                current_path = os.path.dirname(current_path)
-        else:
-            current_path = file_list.model.rootPath()
-
-        folder_name, ok = QInputDialog.getText(self, "새 폴더", "폴더 이름을 입력하세요:")
-    
-        if ok and folder_name:
-            new_folder_path = os.path.join(current_path, folder_name)
-            try:
-                os.mkdir(new_folder_path)
-            
-                # 파일 시스템 모델 새로고침
-                file_list.model.setRootPath(file_list.model.rootPath())
-            
-            # 새 폴더 선택
-                for row in range(file_list.model.rowCount(current_index)):
-                    index = file_list.model.index(row, 0, current_index)
-                    if file_list.model.fileName(index) == folder_name:
-                        file_list.tree_view.setCurrentIndex(index)
-                        break
-            
-                self.show_info_message("성공", f"'{folder_name}' 폴더가 생성되었습니다.")
-            except OSError as e:
-                self.show_error_message("오류", f"폴더 생성 중 오류가 발생했습니다: {str(e)}")
 
     def file_copy(self) -> None:
         """복사 작업을 처리합니다."""
@@ -277,26 +242,45 @@ class ToolBar(QWidget):
     def file_paste(self) -> None:
         """붙여넣기 작업을 처리합니다.""" 
         self.parent.file_event('paste')
-    
-    def start_rename(self) -> None:
+
+    def start_new_folder(self) -> None:
+        """
+        선택된 폳더 안에 새로운 폴더를 생성.
+        """
+        main_window = self.window()
+        file_list = main_window.file_explorer_bar.file_area.file_list
+        current_index = file_list.tree_view.currentIndex()
+        
+        if current_index.isValid():
+            parent_index = current_index if file_list.model.isDir(current_index) else current_index.parent()
+        else:
+            parent_index = file_list.tree_view.rootIndex()
+
+        new_folder_index = file_list.model.mkdir(parent_index, "새 폴더")
+        if new_folder_index.isValid():
+            file_list.tree_view.setCurrentIndex(new_folder_index)
+            self.start_rename(new_folder_index)
+
+    def start_rename(self, index=None) -> None:
         """
         선택된 파일 이름을 바꿉니다.
         """
         main_window = self.window()
-        current_index = main_window.file_explorer_bar.file_area.file_list.tree_view.currentIndex()
-        if not current_index.isValid():
+        file_list = main_window.file_explorer_bar.file_area.file_list
+        if index is None:
+            index = file_list.tree_view.currentIndex()
+        if not index.isValid():
             return
-    
+
         self.remove_inline_widget()
-        model = main_window.file_explorer_bar.file_area.file_list.tree_view.model()
-        old_name = model.data(current_index, Qt.DisplayRole)
+        old_name = file_list.model.fileName(index)
     
         self.inline_widget = RenameLineEdit(old_name)
         self.inline_widget.setFixedWidth(200)
-        self.inline_widget.returnPressed.connect(lambda: self.finish_rename(current_index))
+        self.inline_widget.returnPressed.connect(lambda: self.finish_rename(index))
         self.inline_widget.editingFinished.connect(self.remove_inline_widget)
     
-        main_window.file_explorer_bar.file_area.file_list.tree_view.setIndexWidget(current_index, self.inline_widget)
+        file_list.tree_view.setIndexWidget(index, self.inline_widget)
         self.inline_widget.setFocus()
 
     def finish_rename(self, index) -> None:
