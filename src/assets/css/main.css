@@ -1,3 +1,7 @@
+* {
+    font-family: "Malgun Gothic", "맑은 고딕", sans-serif;
+}
+
 QMainWindow {
     background-color: transparent;
 }
