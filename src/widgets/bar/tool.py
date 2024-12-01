@@ -1,15 +1,28 @@
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QSizePolicy, QMenu,
-    QAction, QMessageBox, QProgressDialog, QInputDialog
+    QAction, QMessageBox, QProgressDialog, QInputDialog,
+    QLineEdit
 )
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from utils.load import load_stylesheet, image_base_path
 from utils.analysis import analyze_file
 from utils.virus_scan import VirusScanThread
 from dotenv import load_dotenv
 import os
 from utils.secure import TaskRunner
+
+class RenameLineEdit(QLineEdit):
+    """
+    QLineEdit를 상속받는 클래스
+    """
+    def __init__(self, old_name, parent=None):
+        super().__init__(old_name, parent)
+        self.old_name = old_name
+
+    def focusOutEvent(self, event):
+        self.setText(self.old_name)
+        super().focusOutEvent(event)
 
 class ToolBar(QWidget):
     """
@@ -81,6 +94,7 @@ class ToolBar(QWidget):
 
         self.setFixedHeight(40)  # 툴바 높이 설정
         self.setFixedWidth(1000)  # 툴바 너비 설정 (필요에 따라 조정)
+        self.inline_widget = None
 
     def create_toolbar_buttons(self) -> None:
         """
@@ -120,7 +134,7 @@ class ToolBar(QWidget):
                 button.clicked.connect(self.toggle_lock)
 
             if info["name"] == "rename":
-                button.clicked.connect(self.file_rename)
+                button.clicked.connect(self.start_rename)
 
             if info["name"] == "delete":
                 button.clicked.connect(self.file_delete)
@@ -264,30 +278,46 @@ class ToolBar(QWidget):
         """붙여넣기 작업을 처리합니다.""" 
         self.parent.file_event('paste')
     
-    def file_rename(self) -> None:
+    def start_rename(self) -> None:
         """
         선택된 파일 이름을 바꿉니다.
         """
         main_window = self.window()
-        file_list = main_window.file_explorer_bar.file_area.file_list
-        current_index = file_list.tree_view.currentIndex()
-        
+        current_index = main_window.file_explorer_bar.file_area.file_list.tree_view.currentIndex()
         if not current_index.isValid():
-            self.show_warning_message("경고", "이름을 변경할 파일 또는 폴더를 선택해주세요.")
             return
-        
-        old_name = file_list.model.fileName(current_index)
-        new_name, ok = QInputDialog.getText(self, "이름 변경", "새 이름을 입력하세요:", text=old_name)
-        
-        if ok and new_name:
-            old_path = file_list.model.filePath(current_index)
+    
+        self.remove_inline_widget()
+        model = main_window.file_explorer_bar.file_area.file_list.tree_view.model()
+        old_name = model.data(current_index, Qt.DisplayRole)
+    
+        self.inline_widget = RenameLineEdit(old_name)
+        self.inline_widget.setFixedWidth(200)
+        self.inline_widget.returnPressed.connect(lambda: self.finish_rename(current_index))
+        self.inline_widget.editingFinished.connect(self.remove_inline_widget)
+    
+        main_window.file_explorer_bar.file_area.file_list.tree_view.setIndexWidget(current_index, self.inline_widget)
+        self.inline_widget.setFocus()
+
+    def finish_rename(self, index) -> None:
+        main_window = self.window()
+        new_name = self.inline_widget.text()
+        if new_name:
+            model = main_window.file_explorer_bar.file_area.file_list.tree_view.model()
+            old_path = model.filePath(index)
             new_path = os.path.join(os.path.dirname(old_path), new_name)
-            
             try:
                 os.rename(old_path, new_path)
-                file_list.model.setRootPath(file_list.model.rootPath())
+                model.setRootPath(model.rootPath())
             except OSError as e:
                 self.show_error_message("오류", f"이름 변경 중 오류가 발생했습니다: {str(e)}")
+        self.remove_inline_widget()
+
+    def remove_inline_widget(self):
+        if self.inline_widget:
+            main_window = self.window()
+            main_window.file_explorer_bar.file_area.file_list.tree_view.setIndexWidget(main_window.file_explorer_bar.file_area.file_list.tree_view.currentIndex(), None)
+            self.inline_widget = None
 
     def file_delete(self) -> None:
         """
