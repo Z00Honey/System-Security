@@ -15,43 +15,6 @@ class ToolBar(QWidget):
     """
     파일 작업 및 보안 검사를 위한 버튼들을 포함한 툴바 위젯입니다.
     """
-    
-    def show_message_with_icon(self, title: str, text: str, icon_filename: str) -> None:
-        """
-        사용자 정의 아이콘을 사용한 메시지 박스를 표시합니다.
-
-        Args:
-            title (str): 메시지 박스 제목.
-            text (str): 메시지 내용.
-            icon_filename (str): 사용자 정의 아이콘 파일 이름.
-        """
-        message_box = QMessageBox(self)
-        message_box.setWindowTitle(title)
-        message_box.setText(text)
-
-        # 커스텀 아이콘 설정
-        custom_icon_path = image_base_path(icon_filename)
-        custom_icon = QPixmap(custom_icon_path)
-        message_box.setIconPixmap(custom_icon)
-
-        # 버튼 추가
-        message_box.setStandardButtons(QMessageBox.Ok)
-        message_box.exec_()
-
-
-    def image_base_path(file_name: str) -> str:
-        """
-        주어진 파일 이름에 대한 전체 경로를 반환합니다.
-
-        Args:
-            file_name (str): 파일 이름 (예: 'shield.png').
-
-        Returns:
-            str: 파일의 전체 경로.
-        """
-        base_path = os.path.join(os.path.dirname(__file__), "assets/images")
-        return os.path.join(base_path, file_name)
-
 
     def __init__(self, parent: QWidget = None, secure_manager=None) -> None:
         """
@@ -336,7 +299,8 @@ class ToolBar(QWidget):
             # 파일 분석 실행
             result = analyze_file(file_path)
             # 검사 결과 표시
-            self.show_message_with_icon("확장자 검사 결과", result, "shield.png")
+            self.show_info_message("확장자 검사 결과", result)
+
     def run_virus_check(self) -> None:
         """
         선택된 파일 또는 폴더에 대해 바이러스 검사를 실행합니다.
@@ -404,7 +368,8 @@ class ToolBar(QWidget):
             result (str): 검사 결과 메시지입니다.
         """
         self.progress_dialog.close()
-        self.show_message_with_icon("검사 완료", result,"shield.png")        
+        self.show_info_message("검사 완료", result)
+
     def on_scan_error(self, error_message: str) -> None:
         """
         바이러스 검사 중 오류가 발생했을 때 호출됩니다.
@@ -447,7 +412,7 @@ class ToolBar(QWidget):
 
     def confirm_action(self, title: str, text: str) -> bool:
         """
-        사용자에게 작업 확인 대화 상자를 표시하며, 사용자 정의 아이콘을 설정합니다.
+        사용자에게 작업 확인 대화 상자를 표시합니다.
 
         Args:
             title (str): 대화 상자 제목입니다.
@@ -456,24 +421,8 @@ class ToolBar(QWidget):
         Returns:
             bool: 사용자가 '예'를 선택하면 True를 반환합니다.
         """
-        # QMessageBox 객체 생성
-        message_box = QMessageBox(self)
-        message_box.setWindowTitle(title)  # 제목 설정
-        message_box.setText(text)  # 메시지 내용 설정
-
-        # 커스텀 아이콘 설정 (shield.png 사용)
-        custom_icon_path = image_base_path("shield.png")
-        custom_icon = QPixmap(custom_icon_path)
-        message_box.setIconPixmap(custom_icon)
-
-        # 버튼 설정
-        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        message_box.setDefaultButton(QMessageBox.Yes)
-
-        # 메시지 박스 실행 및 사용자 선택 반환
-        return message_box.exec_() == QMessageBox.Yes
-
-
+        reply = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No)
+        return reply == QMessageBox.Yes
     def get_size(self,path):
         """파일 또는 폴더 크기를 계산"""
         if os.path.isfile(path):
