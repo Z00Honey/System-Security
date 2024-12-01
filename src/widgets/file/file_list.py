@@ -5,6 +5,7 @@ from widgets.file.information import FileInformation
 from PyQt5.QtGui import QCursor, QDesktopServices
 import shutil, subprocess
 import os
+from utils.secure import TaskRunner
 
 # 수정하지 않은 부분, 하지만 주석 추가 필요할 때 제공
 # from PyQt5.QtWidgets import ... (if additional imports are required, list them in comments here)
@@ -446,9 +447,13 @@ class FileList(QWidget):
         
         virus_scan_action = QAction("바이러스 검사", self)
         virus_scan_action.triggered.connect(lambda: self.virus_scan(file_path))
-        
-        lock_action = QAction("잠금", self)
-        lock_action.triggered.connect(lambda: self.lock_item(file_path))
+        if self.secure_manager.authenticated:
+            lock_action = QAction("해제", self)
+            lock_action.triggered.connect(lambda: self.lock_item(file_path))
+        else:
+            lock_action = QAction("잠금", self)
+            lock_action.triggered.connect(lambda: self.lock_item(file_path))
+
         
         # 편집 관련 액션
         cut_action = QAction("잘라내기", self)
@@ -524,7 +529,42 @@ class FileList(QWidget):
 
     def lock_item(self, path: str) -> None:
         """항목을 잠급니다."""
-        # TODO: 잠금 기능 구현
+        size_in_bytes = self.get_size(path)
+        if self.secure_manager.pwd_mgr.AESkey is None:  # None으로 체크
+            QMessageBox.warning(self, "Error", "AES 키가 설정되지 않았습니다.")
+            return  # 키가 없으면 더 이상 실행하지 않음
+        
+        size_limit = 5 * 1024**3  # 5GB
+        if size_in_bytes > size_limit:
+            QMessageBox.warning(self, "Error", "파일 또는 폴더 크기가 5GB를 초과하여 작업을 수행할 수 없습니다.")
+            return  # 크기 초과 시 실행 중단
+
+        # 인증 여부 확인
+        if not self.secure_manager.authenticated:
+            # 잠금 메시지창
+            reply = QMessageBox.question(
+                self, "잠금", "해당 폴더(파일)를 잠금 처리 하시겠습니까?",
+                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    TaskRunner.run(self.secure_manager.lock, path)
+                    QMessageBox.information(self, "잠금 완료", "폴더(파일)가 성공적으로 잠금 처리되었습니다.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"잠금 중 오류 발생: {str(e)}")
+        else:
+            # 해제 메시지창
+            reply = QMessageBox.question(
+                self, "해제", "해당 폴더(파일)를 잠금 해제 하시겠습니까?",
+                QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    TaskRunner.run(self.secure_manager.unlock, path)
+                    QMessageBox.information(self, "해제 완료", "폴더(파일)가 성공적으로 잠금 해제되었습니다.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"해제 중 오류 발생: {str(e)}")
+
         pass
 
     def rename_item(self, index) -> None:
@@ -535,3 +575,17 @@ class FileList(QWidget):
         """항목의 속성을 표시합니다."""
         # TODO: 속성 창 표시 기능 구현
         pass
+    def get_size(self,path):
+        """파일 또는 폴더 크기를 계산"""
+        if os.path.isfile(path):
+            return os.path.getsize(path)  # 파일 크기 반환
+        elif os.path.isdir(path):
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if not os.path.islink(file_path):
+                        total_size += os.path.getsize(file_path)
+            return total_size  # 폴더 크기 반환
+        else:
+            raise ValueError(f"Invalid path: {path} is neither a file nor a folder.")
