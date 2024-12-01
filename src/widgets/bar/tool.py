@@ -29,15 +29,14 @@ class ToolBar(QWidget):
         message_box.setWindowTitle(title)
         message_box.setText(text)
 
-        # 커스텀 아이콘 설정
+     
         custom_icon_path = image_base_path(icon_filename)
         custom_icon = QPixmap(custom_icon_path)
         message_box.setIconPixmap(custom_icon)
 
-        # 버튼 추가
         message_box.setStandardButtons(QMessageBox.Ok)
-        message_box.setStandardButtons(QMessageBox.NoButton)  # 기본 버튼 제거
-        # 한글로 버튼 설정
+        message_box.setStandardButtons(QMessageBox.NoButton)  
+
         ok_button = message_box.addButton("확인", QMessageBox.AcceptRole)
         message_box.exec_()
 
@@ -305,12 +304,20 @@ class ToolBar(QWidget):
         file_path = file_list.model.filePath(current_index)
         is_dir = os.path.isdir(file_path)
 
-        # 삭제 확인 대화 상자 호출
-        if self.confirm_action(
-            "삭제 확인",
-            f"선택한 {'폴더' if is_dir else '파일'}을 삭제하시겠습니까?",
-            use_custom_icon=True,
-        ):
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("삭제 확인")
+        message_box.setText(f"선택한 {'폴더' if is_dir else '파일'}을 삭제하시겠습니까?")
+        
+        delete_icon_path = image_base_path("delete.png")
+        delete_icon = QPixmap(delete_icon_path)
+        message_box.setIconPixmap(delete_icon)
+        
+        message_box.setStandardButtons(QMessageBox.NoButton)
+        yes_button = message_box.addButton("예", QMessageBox.YesRole)
+        no_button = message_box.addButton("아니요", QMessageBox.NoRole)
+
+        message_box.exec_()
+        if message_box.clickedButton() == yes_button:
             try:
                 if is_dir:
                     import shutil
@@ -318,14 +325,13 @@ class ToolBar(QWidget):
                 else:
                     os.remove(file_path)
                 
-                # 파일 시스템 모델 새로고침
                 file_list.model.setRootPath(file_list.model.rootPath())
 
-                # 삭제 완료 메시지 표시
                 self.show_message_with_icon("삭제 완료", f"선택한 {'폴더' if is_dir else '파일'}이 성공적으로 삭제되었습니다.", "delete.png")
             except OSError as e:
                 self.show_error_message("오류", f"삭제 중 오류가 발생했습니다: {str(e)}")
-
+        else:
+            self.show_message_with_icon("취소", "삭제 작업이 취소되었습니다.", "delete.png")
 
     def run_extension_check(self) -> None:
         """
@@ -333,7 +339,6 @@ class ToolBar(QWidget):
         """
         main_window = self.window()
 
-        # 현재 선택된 파일 가져오기
         file_list = main_window.file_explorer_bar.file_area.file_list
         current_index = file_list.tree_view.currentIndex()
         if not current_index.isValid():
@@ -346,11 +351,8 @@ class ToolBar(QWidget):
             self.show_warning_message("경고", "파일만 검사할 수 있습니다.")
             return
 
-        # 확장자 검사 확인 대화 상자 호출
         if self.confirm_action("확장자 검사", "선택한 파일에 대한 포맷 및 확장자 불일치 검사를 진행하시겠습니까?"):
-            # 파일 분석 실행
             result = analyze_file(file_path)
-            # 검사 결과 표시
             self.show_message_with_icon("확장자 검사 결과", result, "shield.png")
 
     def run_virus_check(self) -> None:
@@ -368,7 +370,7 @@ class ToolBar(QWidget):
         path = file_list.model.filePath(current_index)
 
         if file_list.model.isDir(current_index):
-            # 폴더 내 파일 확인
+            
             folder_content = os.listdir(path)
             files_only = [f for f in folder_content if os.path.isfile(os.path.join(path, f))]
 
@@ -376,7 +378,6 @@ class ToolBar(QWidget):
                 self.show_info_message("정보", "선택한 폴더에 파일이 없습니다.")
                 return
 
-        # 바이러스 검사 확인 대화 상자 호출
         if self.confirm_action("바이러스 검사", "선택한 파일/폴더에 대한 바이러스 검사를 진행하시겠습니까?"):
             self.start_virus_scan(path)
 
@@ -474,23 +475,19 @@ class ToolBar(QWidget):
         Returns:
             bool: 사용자가 '예'를 선택하면 True를 반환합니다.
         """
-        # QMessageBox 객체 생성
         message_box = QMessageBox(self)
         message_box.setWindowTitle(title)
         message_box.setText(text)
 
-        # 사용자 정의 아이콘 설정
         if use_custom_icon:
             custom_icon_path = image_base_path("shield.png")
             custom_icon = QPixmap(custom_icon_path)
             message_box.setIconPixmap(custom_icon)
 
-        # 기본 버튼 제거 후 한글 버튼 추가
         message_box.setStandardButtons(QMessageBox.NoButton)
         yes_button = message_box.addButton("예", QMessageBox.YesRole)
         no_button = message_box.addButton("아니요", QMessageBox.NoRole)
 
-        # 메시지 박스 실행 및 사용자 선택 반환
         message_box.exec_()
         return message_box.clickedButton() == yes_button
 
@@ -500,7 +497,7 @@ class ToolBar(QWidget):
     def get_size(self,path):
         """파일 또는 폴더 크기를 계산"""
         if os.path.isfile(path):
-            return os.path.getsize(path)  # 파일 크기 반환
+            return os.path.getsize(path)  
         elif os.path.isdir(path):
             total_size = 0
             for dirpath, dirnames, filenames in os.walk(path):
@@ -508,6 +505,6 @@ class ToolBar(QWidget):
                     file_path = os.path.join(dirpath, filename)
                     if not os.path.islink(file_path):
                         total_size += os.path.getsize(file_path)
-            return total_size  # 폴더 크기 반환
+            return total_size  
         else:
             raise ValueError(f"Invalid path: {path} is neither a file nor a folder.")
