@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QApplication, QMessageBox
+from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QApplication, QMessageBox, QMenu, QAction
 from PyQt5.QtCore import Qt, pyqtSignal, QMimeData, QUrl, QProcess
 from models.file_system_model import FileExplorerModel
 from widgets.file.information import FileInformation
@@ -32,6 +32,7 @@ def set_clipboard_files(file_paths: list[str], move: bool = False) -> None:
 
 # Class declarations are unchanged but re-structured for alignment
 class FileList(QWidget):
+    add_to_favorites_signal = pyqtSignal(str)  # 새로운 신호 추가
     path_changed = pyqtSignal(str)
 
     def __init__(self, parent: QWidget = None, secure_manager: any = None) -> None:
@@ -83,6 +84,10 @@ class FileList(QWidget):
                 padding: 5px;
             }
         """)
+
+        # 컨텍스트 메뉴 활성화
+        self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.show_context_menu)
 
     def setup_model(self) -> None:
         """Initializes and configures the file system model."""
@@ -410,3 +415,123 @@ class FileList(QWidget):
         # Clear the cut files set after move
         if operation == 'move':
             self.cut_files.clear()
+
+    def show_context_menu(self, position) -> None:
+        """우클릭 컨텍스트 메뉴를 표시합니다."""
+        index = self.tree_view.indexAt(position)
+        if not index.isValid():
+            return
+
+        is_dir = self.model.isDir(index)
+        file_path = self.model.filePath(index)
+        
+        menu = QMenu(self)
+        
+        # 공통 액션 생성
+        open_action = QAction("열기", self)
+        open_action.triggered.connect(lambda: self.open_item(file_path))
+        
+        # 폴더/파일 전용 액션
+        if is_dir:
+            favorite_action = QAction("즐겨찾기", self)
+            favorite_action.triggered.connect(lambda: self.add_to_favorites(file_path))
+        else:
+            open_with_action = QAction("연결프로그램", self)
+            open_with_action.triggered.connect(lambda: self.open_with(file_path))
+        
+        # 보안 관련 액션
+        if not is_dir:
+            security_scan_action = QAction("보안 검사", self)
+            security_scan_action.triggered.connect(lambda: self.security_scan(file_path))
+        
+        virus_scan_action = QAction("바이러스 검사", self)
+        virus_scan_action.triggered.connect(lambda: self.virus_scan(file_path))
+        
+        lock_action = QAction("잠금", self)
+        lock_action.triggered.connect(lambda: self.lock_item(file_path))
+        
+        # 편집 관련 액션
+        cut_action = QAction("잘라내기", self)
+        cut_action.triggered.connect(lambda: self.copySelectedFiles(cut=True))
+        
+        copy_action = QAction("복사", self)
+        copy_action.triggered.connect(lambda: self.copySelectedFiles(cut=False))
+        
+        delete_action = QAction("삭제", self)
+        delete_action.triggered.connect(self.deleteSelectedFiles)
+        
+        rename_action = QAction("이름바꾸기", self)
+        rename_action.triggered.connect(lambda: self.rename_item(index))
+        
+        properties_action = QAction("속성", self)
+        properties_action.triggered.connect(lambda: self.show_properties(file_path))
+        
+        # 메뉴 구성
+        menu.addAction(open_action)
+        if is_dir:
+            menu.addAction(favorite_action)
+        else:
+            menu.addAction(open_with_action)
+        
+        menu.addSeparator()
+        
+        if not is_dir:
+            menu.addAction(security_scan_action)
+        menu.addAction(virus_scan_action)
+        menu.addAction(lock_action)
+        
+        menu.addSeparator()
+        
+        menu.addAction(cut_action)
+        menu.addAction(copy_action)
+        menu.addAction(delete_action)
+        menu.addAction(rename_action)
+        menu.addAction(properties_action)
+        
+        # 메뉴 표시
+        menu.exec_(QCursor.pos())
+
+    def open_item(self, path: str) -> None:
+        """항목을 엽니다."""
+        if os.path.isdir(path):
+            self.set_current_path(path)
+        else:
+            self.on_double_click(self.tree_view.currentIndex())
+
+    def open_with(self, path: str) -> None:
+        """파일을 열 프로그램을 선택합니다."""
+        if os.name == 'nt':
+            subprocess.run(['cmd', '/c', 'start', 'shell:::{:}', path])
+        else:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def add_to_favorites(self, path: str) -> None:
+        """즐겨찾기에 경로를 추가합니다."""
+        if os.path.exists(path):
+            self.add_to_favorites_signal.emit(path)
+        else:
+            QMessageBox.warning(self, "오류", "존재하지 않는 경로입니다.")
+
+    def security_scan(self, path: str) -> None:
+        """보안 검사를 실행합니다."""
+        # TODO: 보안 검사 기능 구현
+        pass
+
+    def virus_scan(self, path: str) -> None:
+        """바이러스 검사를 실행합니다."""
+        # TODO: 바이러스 검사 기능 구현
+        pass
+
+    def lock_item(self, path: str) -> None:
+        """항목을 잠급니다."""
+        # TODO: 잠금 기능 구현
+        pass
+
+    def rename_item(self, index) -> None:
+        """항목의 이름을 변경합니다."""
+        self.tree_view.edit(index)
+
+    def show_properties(self, path: str) -> None:
+        """항목의 속성을 표시합니다."""
+        # TODO: 속성 창 표시 기능 구현
+        pass
