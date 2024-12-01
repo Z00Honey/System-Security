@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QApplication, QMessageBox
-from PyQt5.QtCore import Qt, pyqtSignal, QMimeData, QUrl
+from PyQt5.QtCore import Qt, pyqtSignal, QMimeData, QUrl, QProcess
 from models.file_system_model import FileExplorerModel
 from widgets.file.information import FileInformation
-from PyQt5.QtGui import QCursor
-import shutil
+from PyQt5.QtGui import QCursor, QDesktopServices
+import shutil, subprocess
 import os
 
 # 수정하지 않은 부분, 하지만 주석 추가 필요할 때 제공
@@ -193,7 +193,7 @@ class FileList(QWidget):
 
     def on_double_click(self, index) -> None:
         """
-        Handles double-click events to navigate into directories.
+        Handles double-click events to navigate into directories or open files.
 
         Args:
             index: The index of the double-clicked item.
@@ -204,6 +204,12 @@ class FileList(QWidget):
             if nav_widget:
                 nav_widget.add_to_history(path)
                 self.set_current_path(path)
+        else:
+            try:
+                if os.name == 'nt':
+                    os.startfile(path)
+            except Exception as e:
+                QMessageBox.warning(self, "Error", f"Failed to open file: {str(e)}")
 
     def keyPressEvent(self, event: any) -> None:
         """
