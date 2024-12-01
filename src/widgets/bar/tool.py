@@ -91,6 +91,8 @@ class ToolBar(QWidget):
             return QSize(36, 36)
         elif name == "shield":
             return QSize(32, 32)
+        elif name == "lock":
+            return QSize(80,80)
         else:
             return QSize(28, 28)
 
