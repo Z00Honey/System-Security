@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QSizePolicy, QMenu,
-    QAction, QMessageBox, QProgressDialog
+    QAction, QMessageBox, QProgressDialog, QInputDialog
 )
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QSize
@@ -65,6 +65,9 @@ class ToolBar(QWidget):
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             self.layout.addWidget(button)
 
+            if info["name"] == "new_folder":
+                button.clicked.connect(self.create_new_folder)
+
             if info["name"] in ["copy", "paste", "cut"]:
                 event = getattr(self, f'file_{info["name"]}')
                 button.clicked.connect(event)
@@ -76,6 +79,12 @@ class ToolBar(QWidget):
             # 잠금 버튼의 이벤트 처리
             if info["name"] == "lock":
                 button.clicked.connect(self.toggle_lock)
+
+            if info["name"] == "rename":
+                button.clicked.connect(self.file_rename)
+
+            if info["name"] == "delete":
+                button.clicked.connect(self.file_delete)
 
     def get_icon_size(self, name: str) -> QSize:
         """
@@ -167,6 +176,42 @@ class ToolBar(QWidget):
         menu.addAction(virus_action)
 
         return menu
+    
+    def create_new_folder(self) -> None:
+        """
+        선택된 폳더 안에 새로운 폴더를 생성.
+        """
+        main_window = self.window()
+        file_list = main_window.file_explorer_bar.file_area.file_list
+        current_index = file_list.tree_view.currentIndex()
+    
+        if current_index.isValid():
+            current_path = file_list.model.filePath(current_index)
+            if not os.path.isdir(current_path):
+                current_path = os.path.dirname(current_path)
+        else:
+            current_path = file_list.model.rootPath()
+
+        folder_name, ok = QInputDialog.getText(self, "새 폴더", "폴더 이름을 입력하세요:")
+    
+        if ok and folder_name:
+            new_folder_path = os.path.join(current_path, folder_name)
+            try:
+                os.mkdir(new_folder_path)
+            
+                # 파일 시스템 모델 새로고침
+                file_list.model.setRootPath(file_list.model.rootPath())
+            
+            # 새 폴더 선택
+                for row in range(file_list.model.rowCount(current_index)):
+                    index = file_list.model.index(row, 0, current_index)
+                    if file_list.model.fileName(index) == folder_name:
+                        file_list.tree_view.setCurrentIndex(index)
+                        break
+            
+                self.show_info_message("성공", f"'{folder_name}' 폴더가 생성되었습니다.")
+            except OSError as e:
+                self.show_error_message("오류", f"폴더 생성 중 오류가 발생했습니다: {str(e)}")
 
     def file_copy(self) -> None:
         """복사 작업을 처리합니다."""
@@ -179,10 +224,57 @@ class ToolBar(QWidget):
     def file_paste(self) -> None:
         """붙여넣기 작업을 처리합니다.""" 
         self.parent.file_event('paste')
+    
+    def file_rename(self) -> None:
+        """
+        선택된 파일 이름을 바꿉니다.
+        """
+        main_window = self.window()
+        file_list = main_window.file_explorer_bar.file_area.file_list
+        current_index = file_list.tree_view.currentIndex()
+        
+        if not current_index.isValid():
+            self.show_warning_message("경고", "이름을 변경할 파일 또는 폴더를 선택해주세요.")
+            return
+        
+        old_name = file_list.model.fileName(current_index)
+        new_name, ok = QInputDialog.getText(self, "이름 변경", "새 이름을 입력하세요:", text=old_name)
+        
+        if ok and new_name:
+            old_path = file_list.model.filePath(current_index)
+            new_path = os.path.join(os.path.dirname(old_path), new_name)
+            
+            try:
+                os.rename(old_path, new_path)
+                file_list.model.setRootPath(file_list.model.rootPath())
+            except OSError as e:
+                self.show_error_message("오류", f"이름 변경 중 오류가 발생했습니다: {str(e)}")
 
     def file_delete(self) -> None:
-        """삭제 작업을 처리합니다.""" 
-        self.parent.file_event('delete')
+        """
+        선택된 파일 삭제합니다.
+        """
+        main_window = self.window()
+        file_list = main_window.file_explorer_bar.file_area.file_list
+        current_index = file_list.tree_view.currentIndex()
+        
+        if not current_index.isValid():
+            self.show_warning_message("경고", "삭제할 파일 또는 폴더를 선택해주세요.")
+            return
+        
+        file_path = file_list.model.filePath(current_index)
+        is_dir = os.path.isdir(file_path)
+        
+        if self.confirm_action("삭제 확인", f"선택한 {'폴더' if is_dir else '파일'}을 삭제하시겠습니까?"):
+            try:
+                if is_dir:
+                    import shutil
+                    shutil.rmtree(file_path)
+                else:
+                    os.remove(file_path)
+                file_list.model.setRootPath(file_list.model.rootPath())
+            except OSError as e:
+                self.show_error_message("오류", f"삭제 중 오류가 발생했습니다: {str(e)}")
 
     def run_extension_check(self) -> None:
         """
