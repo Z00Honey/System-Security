@@ -1,15 +1,10 @@
 import sys
 import os
+import ctypes
 from datetime import datetime
 from PyQt5.QtWidgets import (
-    QApplication,
-    QTreeView,
-    QAbstractItemView,
-    QWidget,
-    QVBoxLayout,
-    QHeaderView,
-    QFileIconProvider,
-    QSizePolicy,
+    QApplication, QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView,
+    QFileIconProvider, QSizePolicy
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QFileInfo
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
@@ -41,7 +36,8 @@ class SearchListWidget(QWidget):
 
         # Connect item click event
         self.tree_view.clicked.connect(self.on_item_clicked)
-
+        self.tree_view.doubleClicked.connect(self.on_item_double_clicked)
+                                             
     def setup_ui(self) -> None:
         """Set up the UI properties of the tree view."""
         self.tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -156,6 +152,22 @@ class SearchListWidget(QWidget):
         if item:
             file_path = item.data(Qt.UserRole)
             self.show_file_info(file_path)
+
+    def on_item_double_clicked(self, index) -> None:
+        index = index.sibling(index.row(), 0)
+        item = self.model.itemFromIndex(index)
+        if item:
+            file_path = item.data(Qt.UserRole)
+            self.execute_file(file_path)
+
+    def execute_file(self, file_path: str) -> None:
+        if os.path.exists(file_path):
+            try:
+                result = ctypes.windll.shell32.ShellExecuteW(None, "open", file_path, None, None, 1)
+                if result <= 32:  # ShellExecute returns a value <= 32 if it fails
+                    ctypes.windll.shell32.ShellExecuteW(None, "openas", file_path, None, None, 1)
+            except Exception as e:
+                print(f"파일 실행 중 오류가 발생했습니다: {str(e)}")
 
     def show_file_info(self, file_path: str) -> None:
         """
