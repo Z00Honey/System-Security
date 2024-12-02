@@ -225,11 +225,6 @@ class FileDirectory(QWidget):
         button.customContextMenuRequested.connect(
             lambda pos, b=button: self.show_bookmark_context_menu(pos, b)
         )
-        
-        # 더블클릭 이벤트 처리를 위한 편집 모드 속성 추가
-        button.is_editing = False
-        button.mouseDoubleClickEvent = lambda event, b=button: self.start_inline_edit(b)
-        
         return button
 
     def start_inline_edit(self, button):
@@ -290,17 +285,14 @@ class FileDirectory(QWidget):
         if not is_above_separator:
             add_bookmark_action = context_menu.addAction("현재 위치를 즐겨찾기에 추가")
         
-        # PC와 홈 버튼이 아닌 경우에만 삭제와 이름 변경 메뉴 추가
+        # PC와 홈 버튼이 아닌 경우에만 삭제 메뉴 추가
         if not is_above_separator:
             remove_action = context_menu.addAction("즐겨찾기 제거")
-            rename_action = context_menu.addAction("즐겨찾기 이름변경(우클릭)")
         
         action = context_menu.exec_(button.mapToGlobal(pos))
         if not is_above_separator:
             if action == remove_action:
                 self.remove_bookmark(button)
-            elif action == rename_action:
-                self.start_inline_edit(button)
             elif 'add_bookmark_action' in locals() and action == add_bookmark_action:
                 file_list = self.get_file_list()
                 if file_list:
