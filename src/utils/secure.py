@@ -67,7 +67,7 @@ class SecureFolderManager:
         
         # 버튼 레이아웃
         button_layout = QHBoxLayout()
-        temp_auth_button = QPushButton("임시인증 하기")
+        temp_auth_button = QPushButton("임시인증")
         temp_auth_button.setFont(QFont("Arial", 10))
         temp_auth_button.clicked.connect(lambda: self.temp_auth(dialog))
         cancel_button = QPushButton("취소")
