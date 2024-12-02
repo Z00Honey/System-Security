@@ -1,14 +1,12 @@
-from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QApplication, QMessageBox, QMenu, QAction
+from PyQt5.QtWidgets import QTreeView, QAbstractItemView, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QApplication, QMessageBox, QMenu, QAction, QProgressDialog, QLineEdit
 from PyQt5.QtCore import Qt, pyqtSignal, QMimeData, QUrl, QProcess
 from models.file_system_model import FileExplorerModel
 from widgets.file.information import FileInformation
-from PyQt5.QtGui import QCursor, QDesktopServices
+from PyQt5.QtGui import QCursor, QDesktopServices, QPixmap, QIcon
 import shutil, subprocess
 import os
 from utils.secure import TaskRunner
-
-# 수정하지 않은 부분, 하지만 주석 추가 필요할 때 제공
-# from PyQt5.QtWidgets import ... (if additional imports are required, list them in comments here)
+from utils.load import image_base_path
 
 def set_clipboard_files(file_paths: list[str], move: bool = False) -> None:
     """
@@ -30,6 +28,17 @@ def set_clipboard_files(file_paths: list[str], move: bool = False) -> None:
 
     clipboard = QApplication.clipboard()
     clipboard.setMimeData(mime_data)
+
+class RenameLineEdit(QLineEdit):
+    """인라인 이름 변경을 위한 QLineEdit 위젯"""
+    def __init__(self, old_name, parent=None):
+        super().__init__(old_name, parent)
+        self.old_name = old_name
+
+    def focusOutEvent(self, event):
+        """포커스를 잃었을 때 원래 이름으로 복원"""
+        self.setText(self.old_name)
+        super().focusOutEvent(event)
 
 # Class declarations are unchanged but re-structured for alignment
 class FileList(QWidget):
@@ -439,10 +448,11 @@ class FileList(QWidget):
         else:
             open_with_action = QAction("연결프로그램", self)
             open_with_action.triggered.connect(lambda: self.open_with(file_path))
+
+    
         
-        # 보안 관련 액션
         if not is_dir:
-            security_scan_action = QAction("보안 검사", self)
+            security_scan_action = QAction("확장자 검사", self)
             security_scan_action.triggered.connect(lambda: self.security_scan(file_path))
         
         virus_scan_action = QAction("바이러스 검사", self)
@@ -491,7 +501,7 @@ class FileList(QWidget):
         menu.addAction(copy_action)
         menu.addAction(delete_action)
         menu.addAction(rename_action)
-        menu.addAction(properties_action)
+        #menu.addAction(properties_action)
         
         # 메뉴 표시
         menu.exec_(QCursor.pos())
@@ -518,14 +528,122 @@ class FileList(QWidget):
             QMessageBox.warning(self, "오류", "존재하지 않는 경로입니다.")
 
     def security_scan(self, path: str) -> None:
-        """보안 검사를 실행합니다."""
-        # TODO: 보안 검사 기능 구현
-        pass
+        """선택된 파일에 대해 확장자 검사를 실행합니다."""
+        if os.path.isdir(path):
+            QMessageBox.warning(self, "경고", "파일만 검사할 수 있습니다.")
+            return
+
+        # 확인 메시지 표시
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("확장자 검사")
+        message_box.setText("선택한 파일에 대한 포맷 및 확장자 불일치 검사를 진행하시겠습니까?")
+        
+        custom_icon_path = image_base_path("shield.png")
+        custom_icon = QPixmap(custom_icon_path)
+        message_box.setIconPixmap(custom_icon)
+        
+        message_box.setStandardButtons(QMessageBox.NoButton)
+        yes_button = message_box.addButton("예", QMessageBox.YesRole)
+        no_button = message_box.addButton("아니요", QMessageBox.NoRole)
+
+        message_box.exec_()
+        if message_box.clickedButton() == yes_button:
+            from utils.analysis import analyze_file
+            result = analyze_file(path)
+            
+            # 결과 메시지 표시
+            result_box = QMessageBox(self)
+            result_box.setWindowTitle("확장자 검사 결과")
+            result_box.setText(result)
+            result_box.setIconPixmap(custom_icon)
+            result_box.setStandardButtons(QMessageBox.NoButton)
+            ok_button = result_box.addButton("확인", QMessageBox.AcceptRole)
+            result_box.exec_()
 
     def virus_scan(self, path: str) -> None:
-        """바이러스 검사를 실행합니다."""
-        # TODO: 바이러스 검사 기능 구현
-        pass
+        """선택된 파일 또는 폴더에 대해 바이러스 검사를 실행합니다."""
+        if os.path.isdir(path):
+            folder_content = os.listdir(path)
+            files_only = [f for f in folder_content if os.path.isfile(os.path.join(path, f))]
+
+            if not files_only:
+                QMessageBox.information(self, "정보", "선택한 폴더에 파일이 없습니다.")
+                return
+
+        # 확인 메시지 표시
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("바이러스 검사")
+        message_box.setText("선택한 파일/폴더에 대한 바이러스 검사를 진행하시겠습니까?")
+
+        custom_icon_path = image_base_path("shield.png")
+        custom_icon = QPixmap(custom_icon_path)
+        message_box.setIconPixmap(custom_icon)
+
+        message_box.setStandardButtons(QMessageBox.NoButton)
+        yes_button = message_box.addButton("예", QMessageBox.YesRole)
+        no_button = message_box.addButton("아니요", QMessageBox.NoRole)
+
+        message_box.exec_()
+        if message_box.clickedButton() == yes_button:
+            self.start_virus_scan(path)
+
+    def start_virus_scan(self, path: str) -> None:
+        """바이러스 검사를 시작합니다."""
+        from utils.virus_scan import VirusScanThread
+        
+        self.progress_dialog = QProgressDialog("검사 중...", "취소", 0, 100, self)
+        self.progress_dialog.setWindowTitle("바이러스 검사")
+        self.progress_dialog.setWindowModality(True)
+
+        self.scan_thread = VirusScanThread(path)
+        self.scan_thread.finished.connect(self.on_scan_finished)
+        self.scan_thread.error.connect(self.on_scan_error)
+        self.scan_thread.progress.connect(self.update_progress)
+
+        self.progress_dialog.canceled.connect(self.scan_thread.terminate)
+        self.scan_thread.start()
+        self.progress_dialog.show()
+
+    def update_progress(self, current: int, total: int) -> None:
+        """검사 진행 상황을 업데이트합니다."""
+        if hasattr(self, 'progress_dialog'):
+            progress = int((current / total) * 100)
+            self.progress_dialog.setValue(progress)
+            self.progress_dialog.setLabelText(f"검사 중... ({current}/{total})")
+
+    def on_scan_finished(self, result: str) -> None:
+        """바이러스 검사가 완료되었을 때 호출됩니다."""
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+            
+            # 결과 메시지 표시
+            message_box = QMessageBox(self)
+            message_box.setWindowTitle("검사 완료")
+            message_box.setText(result)
+            
+            custom_icon_path = image_base_path("shield.png")
+            custom_icon = QPixmap(custom_icon_path)
+            message_box.setIconPixmap(custom_icon)
+            
+            message_box.setStandardButtons(QMessageBox.NoButton)
+            ok_button = message_box.addButton("확인", QMessageBox.AcceptRole)
+            message_box.exec_()
+            
+            # 리소스 정리
+            self.scan_thread.deleteLater()
+            delattr(self, 'scan_thread')
+            delattr(self, 'progress_dialog')
+
+    def on_scan_error(self, error_message: str) -> None:
+        """바이러스 검사 중 오류가 발생했을 때 호출됩니다."""
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+            QMessageBox.critical(self, "오류", f"검사 중 오류가 발생했습니다:\n{error_message}")
+            
+            # 리소스 정리
+            self.scan_thread.deleteLater()
+            delattr(self, 'scan_thread')
+            delattr(self, 'progress_dialog')
 
     def lock_item(self, path: str) -> None:
         """항목을 잠급니다."""
@@ -568,8 +686,47 @@ class FileList(QWidget):
         pass
 
     def rename_item(self, index) -> None:
-        """항목의 이름을 변경합니다."""
-        self.tree_view.edit(index)
+        """항목의 이름을 인라인으로 변경합니다."""
+        if not index.isValid():
+            return
+
+        # 기존 인라인 위젯 제거
+        if hasattr(self, 'inline_widget'):
+            self.remove_inline_widget()
+
+        old_name = self.model.fileName(index)
+        self.inline_widget = RenameLineEdit(old_name)
+        self.inline_widget.setFixedWidth(200)
+        self.inline_widget.returnPressed.connect(lambda: self.finish_rename(index))
+        self.inline_widget.editingFinished.connect(self.remove_inline_widget)
+
+        self.tree_view.setIndexWidget(index, self.inline_widget)
+        self.inline_widget.setFocus()
+        self.inline_widget.selectAll()
+
+    def finish_rename(self, index) -> None:
+        """이름 변경을 완료하고 파일시스템에 적용합니다."""
+        if not hasattr(self, 'inline_widget'):
+            return
+
+        new_name = self.inline_widget.text()
+        if new_name and new_name != self.inline_widget.old_name:
+            old_path = self.model.filePath(index)
+            new_path = os.path.join(os.path.dirname(old_path), new_name)
+            
+            try:
+                os.rename(old_path, new_path)
+                self.model.setRootPath(self.model.rootPath())  # 뷰 갱신
+            except OSError as e:
+                QMessageBox.warning(self, "오류", f"이름 변경 중 오류가 발생했습니다: {str(e)}")
+
+        self.remove_inline_widget()
+
+    def remove_inline_widget(self) -> None:
+        """인라인 편집 위젯을 제거합니다."""
+        if hasattr(self, 'inline_widget'):
+            self.tree_view.setIndexWidget(self.tree_view.currentIndex(), None)
+            delattr(self, 'inline_widget')
 
     def show_properties(self, path: str) -> None:
         """항목의 속성을 표시합니다."""

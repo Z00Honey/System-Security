@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QSizePolicy, QMenu,
-    QAction, QMessageBox, QProgressDialog, QInputDialog,
-    QLineEdit, QTreeView
+    QAction, QMessageBox, QProgressDialog,
+    QLineEdit
 )
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import QSize, Qt, QDir
+from PyQt5.QtCore import QSize
 from utils.load import load_stylesheet, image_base_path
 from utils.analysis import analyze_file
 from utils.virus_scan import VirusScanThread
@@ -436,7 +436,8 @@ class ToolBar(QWidget):
             result (str): 검사 결과 메시지입니다.
         """
         self.progress_dialog.close()
-        self.show_message_with_icon("검사 완료", result,"shield.png")        
+        self.show_message_with_icon("검사 완료", result,"shield.png")       
+         
     def on_scan_error(self, error_message: str) -> None:
         """
         바이러스 검사 중 오류가 발생했을 때 호출됩니다.
