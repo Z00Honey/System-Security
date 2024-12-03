@@ -261,27 +261,26 @@ class ToolBar(QWidget):
             file_list.tree_view.setCurrentIndex(new_folder_index)
             self.start_rename(new_folder_index)
 
-    def start_rename(self) -> None:
+    def start_rename(self, index=None) -> None:
         """
         선택된 파일 이름을 바꿉니다.
         """
         main_window = self.window()
         file_list = main_window.file_explorer_bar.file_area.file_list
-        current_index = file_list.tree_view.currentIndex()
-    
-        if not current_index.isValid():
-            self.show_warning_message("경고", "이름을 변경할 파일 또는 폴더를 선택해주세요.")
+        if index is None or isinstance(index, bool):
+            index = file_list.tree_view.currentIndex()
+        if not index.isValid():
             return
 
         self.remove_inline_widget()
-        old_name = file_list.model.fileName(current_index)
-    
+        old_name = file_list.model.fileName(index)
+        
         self.inline_widget = RenameLineEdit(old_name)
         self.inline_widget.setFixedWidth(200)
-        self.inline_widget.returnPressed.connect(lambda: self.finish_rename(current_index))
+        self.inline_widget.returnPressed.connect(lambda: self.finish_rename(index))
         self.inline_widget.editingFinished.connect(self.remove_inline_widget)
-    
-        file_list.tree_view.setIndexWidget(current_index, self.inline_widget)
+        
+        file_list.tree_view.setIndexWidget(index, self.inline_widget)
         self.inline_widget.setFocus()
 
     def finish_rename(self, index) -> None:
